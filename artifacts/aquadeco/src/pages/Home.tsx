@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { ArrowRight, CheckCircle2, ChevronRight, Leaf, ShieldCheck, Award, Truck } from "lucide-react";
 import { useGetSiteContent, getGetSiteContentQueryKey } from "@workspace/api-client-react";
+import { InlineEditText } from "@/components/InlineEditText";
 
 const HERO_IMAGE = "/images/hero-main.jpg";
 const HALF_BATH_IMAGE = "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg";
@@ -34,12 +35,20 @@ export default function Home() {
           <span className="inline-block py-1.5 px-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs mb-6 tracking-widest uppercase">
             Premium Hinoki Bath Specialist
           </span>
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-6 leading-tight max-w-4xl mx-auto drop-shadow-lg break-keep whitespace-pre-line">
-            {getContent("hero_title", "자연의 향기를 담은\n히노끼 욕조")}
-          </h1>
-          <p className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto font-light leading-relaxed drop-shadow break-keep whitespace-pre-line">
-            {getContent("hero_subtitle", "일본 히노끼(편백)나무로 만든 최고급 욕조.\n피톤치드와 향긋한 나무 향으로 몸과 마음을 치유하세요.")}
-          </p>
+          <InlineEditText
+            contentKey="hero_title"
+            value={getContent("hero_title", "자연의 향기를 담은\n히노끼 욕조")}
+            as="h1"
+            className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-6 leading-tight max-w-4xl mx-auto drop-shadow-lg break-keep whitespace-pre-line"
+            multiline
+          />
+          <InlineEditText
+            contentKey="hero_subtitle"
+            value={getContent("hero_subtitle", "일본 히노끼(편백)나무로 만든 최고급 욕조.\n피톤치드와 향긋한 나무 향으로 몸과 마음을 치유하세요.")}
+            as="p"
+            className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto font-light leading-relaxed drop-shadow break-keep whitespace-pre-line"
+            multiline
+          />
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/portfolio">
               <Button size="lg" className="text-base px-10 h-14 w-full sm:w-auto shadow-lg" data-testid="btn-hero-portfolio">

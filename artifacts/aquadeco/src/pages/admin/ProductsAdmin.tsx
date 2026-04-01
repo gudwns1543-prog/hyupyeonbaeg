@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Eye, EyeOff, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, X, FolderTree, ChevronRight } from "lucide-react";
 import { ImageUploadInput } from "@/components/ui/ImageUploadInput";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -36,30 +36,18 @@ type Product = {
   createdAt: string;
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  bath: "히노끼욕조",
-  accessory: "악세사리",
-};
-
-const SUB_LABELS: Record<string, Record<string, string>> = {
-  bath: {
-    half: "반신욕조",
-    full: "전신욕조",
-    custom: "주문제작형욕조",
-    sale: "할인제품",
-  },
-  accessory: {
-    deck: "데크수전",
-    box: "목함수전",
-    stairs: "외부계단",
-    whirlpool: "월풀 시스템",
-  },
+type Category = {
+  id: number;
+  slug: string;
+  name: string;
+  parentSlug: string | null;
+  sortOrder: number;
 };
 
 const emptyForm = {
   name: "",
-  category: "bath",
-  subCategory: "half",
+  category: "",
+  subCategory: "",
   price: "",
   priceText: "",
   description: "",
@@ -76,51 +64,32 @@ const emptyForm = {
 
 type FormState = typeof emptyForm;
 
+function getSubValue(cat: Category): string {
+  if (!cat.parentSlug) return cat.slug;
+  const prefix = cat.parentSlug + "-";
+  return cat.slug.startsWith(prefix) ? cat.slug.slice(prefix.length) : cat.slug;
+}
+
 function parseOptions(raw: string): ProductOption[] {
   try { return JSON.parse(raw) || []; } catch { return []; }
 }
-
 function parseImages(raw: string): string[] {
   try { return JSON.parse(raw) || []; } catch { return []; }
 }
 
-function OptionEditor({
-  options,
-  onChange,
-}: {
-  options: ProductOption[];
-  onChange: (opts: ProductOption[]) => void;
-}) {
+function OptionEditor({ options, onChange }: { options: ProductOption[]; onChange: (opts: ProductOption[]) => void }) {
   const addOption = () => onChange([...options, { name: "", values: [] }]);
   const removeOption = (i: number) => onChange(options.filter((_, idx) => idx !== i));
-  const updateName = (i: number, v: string) => {
-    const copy = [...options];
-    copy[i] = { ...copy[i], name: v };
-    onChange(copy);
-  };
-  const updateValues = (i: number, raw: string) => {
-    const copy = [...options];
-    copy[i] = { ...copy[i], values: raw.split(",").map((s) => s.trim()).filter(Boolean) };
-    onChange(copy);
-  };
+  const updateName = (i: number, v: string) => { const c = [...options]; c[i] = { ...c[i], name: v }; onChange(c); };
+  const updateValues = (i: number, raw: string) => { const c = [...options]; c[i] = { ...c[i], values: raw.split(",").map(s => s.trim()).filter(Boolean) }; onChange(c); };
 
   return (
     <div className="space-y-3">
       {options.map((opt, i) => (
         <div key={i} className="flex gap-2 items-start border border-stone-200 rounded-lg p-3 bg-stone-50">
           <div className="flex-1 space-y-2">
-            <Input
-              placeholder="옵션명 (예: 마감등급)"
-              value={opt.name}
-              onChange={(e) => updateName(i, e.target.value)}
-              className="h-8 text-sm"
-            />
-            <Input
-              placeholder="옵션값 쉼표 구분 (예: 무절, 유절, 마사메)"
-              value={opt.values.join(", ")}
-              onChange={(e) => updateValues(i, e.target.value)}
-              className="h-8 text-sm"
-            />
+            <Input placeholder="옵션명 (예: 마감등급)" value={opt.name} onChange={(e) => updateName(i, e.target.value)} className="h-8 text-sm" />
+            <Input placeholder="옵션값 쉼표 구분 (예: 무절, 유절, 마사메)" value={opt.values.join(", ")} onChange={(e) => updateValues(i, e.target.value)} className="h-8 text-sm" />
           </div>
           <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => removeOption(i)}>
             <X className="w-4 h-4" />
@@ -134,15 +103,279 @@ function OptionEditor({
   );
 }
 
+function AdditionalImagesEditor({ images, onChange }: { images: string[]; onChange: (imgs: string[]) => void }) {
+  const addImage = (url: string) => { if (url && !images.includes(url)) onChange([...images, url]); };
+  const removeImage = (i: number) => onChange(images.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-3">
+        {images.map((img, i) => (
+          <div key={i} className="relative group rounded-lg overflow-hidden border border-stone-200 aspect-square">
+            <img src={img} alt="" className="w-full h-full object-cover" />
+            <button onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <ImageUploadInput value="" onChange={(url) => { if (url) addImage(url); }} label="추가 이미지 업로드" />
+    </div>
+  );
+}
+
+/* ──────────────── Category Manager Component ──────────────── */
+function CategoryManager({ categories, onRefresh }: { categories: Category[]; onRefresh: () => void }) {
+  const { toast } = useToast();
+  const [selectedParent, setSelectedParent] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [editCat, setEditCat] = useState<Category | null>(null);
+  const [form, setForm] = useState({ slug: "", name: "", parentSlug: "" });
+  const [deleteConfirm, setDeleteConfirm] = useState<Category | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const topLevel = categories.filter(c => !c.parentSlug).sort((a, b) => a.sortOrder - b.sortOrder);
+  const subOf = (slug: string) => categories.filter(c => c.parentSlug === slug).sort((a, b) => a.sortOrder - b.sortOrder);
+
+  const openAddTop = () => {
+    setEditCat(null);
+    setForm({ slug: "", name: "", parentSlug: "" });
+    setShowModal(true);
+  };
+  const openAddSub = (parentSlug: string) => {
+    setEditCat(null);
+    setForm({ slug: "", name: "", parentSlug });
+    setShowModal(true);
+  };
+  const openEdit = (cat: Category) => {
+    setEditCat(cat);
+    setForm({ slug: cat.slug, name: cat.name, parentSlug: cat.parentSlug || "" });
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) { toast({ title: "카테고리명을 입력해 주세요", variant: "destructive" }); return; }
+    if (!editCat && !form.slug.trim()) { toast({ title: "슬러그(영문)를 입력해 주세요", variant: "destructive" }); return; }
+    setSaving(true);
+    try {
+      let slug = form.slug.trim();
+      if (!editCat && form.parentSlug) {
+        slug = form.parentSlug + "-" + slug;
+      }
+      if (editCat) {
+        const res = await fetch(`${API_BASE}/api/categories/${editCat.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ name: form.name }),
+        });
+        if (!res.ok) throw new Error();
+      } else {
+        const res = await fetch(`${API_BASE}/api/categories`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ slug, name: form.name, parentSlug: form.parentSlug || null, sortOrder: 99 }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.message || "오류");
+        }
+      }
+      toast({ title: editCat ? "카테고리 수정 완료" : "카테고리 추가 완료" });
+      setShowModal(false);
+      onRefresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "오류가 발생했습니다";
+      toast({ title: msg, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (cat: Category) => {
+    const hasSubs = categories.some(c => c.parentSlug === cat.slug);
+    if (hasSubs) {
+      toast({ title: "하위 카테고리를 먼저 삭제해 주세요", variant: "destructive" });
+      setDeleteConfirm(null);
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/categories/${cat.id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) throw new Error();
+      toast({ title: "카테고리 삭제 완료" });
+      setDeleteConfirm(null);
+      if (selectedParent === cat.slug) setSelectedParent(null);
+      onRefresh();
+    } catch {
+      toast({ title: "삭제 실패", variant: "destructive" });
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">카테고리 관리</h3>
+          <p className="text-sm text-muted-foreground mt-0.5">상품 분류 카테고리를 추가·수정·삭제할 수 있습니다</p>
+        </div>
+        <Button onClick={openAddTop} className="gap-2" size="sm">
+          <Plus className="w-4 h-4" /> 대분류 추가
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {/* 대분류 */}
+        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+          <div className="bg-stone-50 border-b border-stone-200 px-4 py-2.5">
+            <span className="text-sm font-semibold text-stone-700">대분류</span>
+          </div>
+          <div className="divide-y divide-stone-100">
+            {topLevel.length === 0 && (
+              <div className="text-center py-10 text-muted-foreground text-sm">카테고리가 없습니다</div>
+            )}
+            {topLevel.map(cat => (
+              <div
+                key={cat.id}
+                className={`flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-stone-50 transition-colors ${selectedParent === cat.slug ? "bg-primary/5 border-l-4 border-l-primary" : ""}`}
+                onClick={() => setSelectedParent(cat.slug === selectedParent ? null : cat.slug)}
+              >
+                <FolderTree className="w-4 h-4 text-primary/60 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium">{cat.name}</span>
+                  <span className="ml-2 text-xs text-stone-400">({subOf(cat.slug).length}개)</span>
+                </div>
+                <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(cat)}>
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteConfirm(cat)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+                <ChevronRight className={`w-4 h-4 text-stone-300 transition-transform ${selectedParent === cat.slug ? "rotate-90" : ""}`} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* 소분류 */}
+        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+          <div className="bg-stone-50 border-b border-stone-200 px-4 py-2.5 flex items-center justify-between">
+            <span className="text-sm font-semibold text-stone-700">
+              소분류 {selectedParent ? `— ${topLevel.find(c => c.slug === selectedParent)?.name}` : ""}
+            </span>
+            {selectedParent && (
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openAddSub(selectedParent)}>
+                <Plus className="w-3 h-3" /> 소분류 추가
+              </Button>
+            )}
+          </div>
+          <div className="divide-y divide-stone-100">
+            {!selectedParent && (
+              <div className="text-center py-10 text-muted-foreground text-sm">왼쪽에서 대분류를 선택하세요</div>
+            )}
+            {selectedParent && subOf(selectedParent).length === 0 && (
+              <div className="text-center py-10 text-muted-foreground text-sm">소분류가 없습니다</div>
+            )}
+            {selectedParent && subOf(selectedParent).map(cat => (
+              <div key={cat.id} className="flex items-center gap-2 px-4 py-3 hover:bg-stone-50">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0 ml-1" />
+                <span className="text-sm flex-1">{cat.name}</span>
+                <span className="text-xs text-stone-400 font-mono">{getSubValue(cat)}</span>
+                <div className="flex items-center gap-0.5">
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(cat)}>
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteConfirm(cat)}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Add/Edit Modal */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>
+              {editCat ? "카테고리 수정" : form.parentSlug ? `소분류 추가 — ${topLevel.find(c => c.slug === form.parentSlug)?.name}` : "대분류 추가"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            {!editCat && (
+              <div>
+                <Label>슬러그 (영문, 소문자)</Label>
+                <Input
+                  className="mt-1"
+                  placeholder={form.parentSlug ? "예: premium" : "예: event"}
+                  value={form.slug}
+                  onChange={(e) => setForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
+                />
+                {form.parentSlug && (
+                  <p className="text-xs text-muted-foreground mt-1">실제 저장: <span className="font-mono text-primary">{form.parentSlug}-{form.slug || "..."}</span></p>
+                )}
+              </div>
+            )}
+            <div>
+              <Label>카테고리명</Label>
+              <Input
+                className="mt-1"
+                placeholder="예: 프리미엄 욕조"
+                value={form.name}
+                onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowModal(false)}>취소</Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? "저장 중..." : "저장"}</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirm */}
+      <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>카테고리 삭제</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">"{deleteConfirm?.name}"</span> 카테고리를 삭제하시겠습니까?<br />
+            해당 카테고리에 속한 상품의 분류는 유지됩니다.
+          </p>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setDeleteConfirm(null)}>취소</Button>
+            <Button variant="destructive" onClick={() => deleteConfirm && handleDelete(deleteConfirm)}>삭제</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+/* ──────────────── Main Component ──────────────── */
 export default function ProductsAdmin() {
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+
+  const topCategories = categories.filter(c => !c.parentSlug).sort((a, b) => a.sortOrder - b.sortOrder);
+  const subCategories = categories.filter(c => c.parentSlug === form.category).sort((a, b) => a.sortOrder - b.sortOrder);
+
+  const getCatName = (slug: string) => categories.find(c => c.slug === slug)?.name || slug;
+  const getSubName = (catSlug: string, subVal: string) => {
+    const cat = categories.find(c => c.parentSlug === catSlug && getSubValue(c) === subVal);
+    return cat?.name || subVal;
+  };
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -157,11 +390,30 @@ export default function ProductsAdmin() {
     }
   };
 
-  useEffect(() => { fetchProducts(); }, []);
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/categories`, { credentials: "include" });
+      const data = await res.json();
+      setCategories(data.categories || []);
+    } catch {
+      console.error("카테고리 로드 실패");
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
 
   const openAdd = () => {
     setEditId(null);
-    setForm(emptyForm);
+    const firstTop = topCategories[0];
+    const firstSub = firstTop ? categories.filter(c => c.parentSlug === firstTop.slug)[0] : null;
+    setForm({
+      ...emptyForm,
+      category: firstTop?.slug || "",
+      subCategory: firstSub ? getSubValue(firstSub) : "",
+    });
     setShowModal(true);
   };
 
@@ -194,21 +446,9 @@ export default function ProductsAdmin() {
     }
     setSaving(true);
     try {
-      const body = {
-        ...form,
-        price: form.price ? Number(form.price) : null,
-        sortOrder: Number(form.sortOrder),
-        discountRate: Number(form.discountRate),
-      };
-      const url = editId
-        ? `${API_BASE}/api/products/${editId}`
-        : `${API_BASE}/api/products`;
-      const res = await fetch(url, {
-        method: editId ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(body),
-      });
+      const body = { ...form, price: form.price ? Number(form.price) : null, sortOrder: Number(form.sortOrder), discountRate: Number(form.discountRate) };
+      const url = editId ? `${API_BASE}/api/products/${editId}` : `${API_BASE}/api/products`;
+      const res = await fetch(url, { method: editId ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
       if (!res.ok) throw new Error();
       toast({ title: editId ? "상품 수정 완료" : "상품 등록 완료" });
       setShowModal(false);
@@ -222,10 +462,7 @@ export default function ProductsAdmin() {
 
   const handleDelete = async (id: number) => {
     try {
-      const res = await fetch(`${API_BASE}/api/products/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
+      const res = await fetch(`${API_BASE}/api/products/${id}`, { method: "DELETE", credentials: "include" });
       if (!res.ok) throw new Error();
       toast({ title: "상품 삭제 완료" });
       setDeleteConfirm(null);
@@ -237,25 +474,17 @@ export default function ProductsAdmin() {
 
   const toggleVisible = async (p: Product) => {
     try {
-      await fetch(`${API_BASE}/api/products/${p.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ isVisible: !p.isVisible }),
-      });
+      await fetch(`${API_BASE}/api/products/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ isVisible: !p.isVisible }) });
       fetchProducts();
     } catch {
       toast({ title: "오류", description: "상태 변경에 실패했습니다", variant: "destructive" });
     }
   };
 
-  const setField = (key: keyof FormState, val: unknown) =>
-    setForm((prev) => ({ ...prev, [key]: val }));
+  const setField = (key: keyof FormState, val: unknown) => setForm((prev) => ({ ...prev, [key]: val }));
 
-  const subOptions = SUB_LABELS[form.category] || {};
   const currentOptions = parseOptions(form.options);
   const currentImages = parseImages(form.additionalImages);
-
   const discountedPrice =
     form.price && Number(form.price) > 0 && Number(form.discountRate) > 0
       ? Math.round(Number(form.price) * (1 - Number(form.discountRate) / 100))
@@ -263,107 +492,111 @@ export default function ProductsAdmin() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold">쇼핑 상품 관리</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">상품을 등록하고 수정·삭제할 수 있습니다</p>
+      <Tabs defaultValue="products">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold">쇼핑 상품 관리</h2>
+            <p className="text-sm text-muted-foreground mt-0.5">상품을 등록하고 카테고리를 관리할 수 있습니다</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <TabsList>
+              <TabsTrigger value="products">상품 목록</TabsTrigger>
+              <TabsTrigger value="categories">카테고리 관리</TabsTrigger>
+            </TabsList>
+          </div>
         </div>
-        <Button onClick={openAdd} className="gap-2">
-          <Plus className="w-4 h-4" /> 상품 등록
-        </Button>
-      </div>
 
-      {/* Product Table */}
-      {loading ? (
-        <div className="text-center py-20 text-muted-foreground">로딩 중...</div>
-      ) : (
-        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-stone-50 border-b border-stone-200">
-              <tr>
-                <th className="text-left px-4 py-3 font-semibold text-stone-700 w-14">순서</th>
-                <th className="text-left px-4 py-3 font-semibold text-stone-700">상품명</th>
-                <th className="text-left px-4 py-3 font-semibold text-stone-700">카테고리</th>
-                <th className="text-left px-4 py-3 font-semibold text-stone-700">가격</th>
-                <th className="text-left px-4 py-3 font-semibold text-stone-700">할인율</th>
-                <th className="text-left px-4 py-3 font-semibold text-stone-700">재고</th>
-                <th className="text-left px-4 py-3 font-semibold text-stone-700">노출</th>
-                <th className="text-right px-4 py-3 font-semibold text-stone-700">관리</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-stone-100">
-              {products.length === 0 && (
-                <tr>
-                  <td colSpan={8} className="text-center py-16 text-muted-foreground">
-                    등록된 상품이 없습니다
-                  </td>
-                </tr>
-              )}
-              {products.map((p) => (
-                <tr key={p.id} className="hover:bg-stone-50 transition-colors">
-                  <td className="px-4 py-3 text-stone-400 text-center">{p.sortOrder}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      {p.imageUrl ? (
-                        <img src={p.imageUrl} alt={p.name} className="w-10 h-10 rounded object-cover border border-stone-200" />
-                      ) : (
-                        <div className="w-10 h-10 rounded border border-stone-200 bg-stone-100 flex items-center justify-center text-stone-400 text-lg">🛁</div>
-                      )}
-                      <span className="font-medium">{p.name}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col gap-0.5">
-                      <Badge variant="outline" className="w-fit text-xs">{CATEGORY_LABELS[p.category] || p.category}</Badge>
-                      <span className="text-xs text-muted-foreground">{SUB_LABELS[p.category]?.[p.subCategory] || p.subCategory}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 font-medium text-primary">{p.priceText}</td>
-                  <td className="px-4 py-3">
-                    {p.discountRate > 0 ? (
-                      <Badge className="bg-red-500 text-white text-xs">{p.discountRate}% 할인</Badge>
-                    ) : (
-                      <span className="text-stone-400 text-xs">-</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={p.inStock ? "default" : "secondary"} className="text-xs">
-                      {p.inStock ? "재고있음" : "품절"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => toggleVisible(p)}
-                      className={`flex items-center gap-1 text-xs font-medium ${p.isVisible ? "text-green-600" : "text-stone-400"}`}
-                    >
-                      {p.isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                      {p.isVisible ? "노출중" : "숨김"}
-                    </button>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(p)}>
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50"
-                        onClick={() => setDeleteConfirm(p.id)}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {/* 상품 목록 탭 */}
+        <TabsContent value="products">
+          <div className="flex justify-end mb-4">
+            <Button onClick={openAdd} className="gap-2">
+              <Plus className="w-4 h-4" /> 상품 등록
+            </Button>
+          </div>
+          {loading ? (
+            <div className="text-center py-20 text-muted-foreground">로딩 중...</div>
+          ) : (
+            <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-stone-50 border-b border-stone-200">
+                  <tr>
+                    <th className="text-left px-4 py-3 font-semibold text-stone-700 w-14">순서</th>
+                    <th className="text-left px-4 py-3 font-semibold text-stone-700">상품명</th>
+                    <th className="text-left px-4 py-3 font-semibold text-stone-700">카테고리</th>
+                    <th className="text-left px-4 py-3 font-semibold text-stone-700">가격</th>
+                    <th className="text-left px-4 py-3 font-semibold text-stone-700">할인율</th>
+                    <th className="text-left px-4 py-3 font-semibold text-stone-700">재고</th>
+                    <th className="text-left px-4 py-3 font-semibold text-stone-700">노출</th>
+                    <th className="text-right px-4 py-3 font-semibold text-stone-700">관리</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-stone-100">
+                  {products.length === 0 && (
+                    <tr>
+                      <td colSpan={8} className="text-center py-16 text-muted-foreground">등록된 상품이 없습니다</td>
+                    </tr>
+                  )}
+                  {products.map((p) => (
+                    <tr key={p.id} className="hover:bg-stone-50 transition-colors">
+                      <td className="px-4 py-3 text-stone-400 text-center">{p.sortOrder}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          {p.imageUrl ? (
+                            <img src={p.imageUrl} alt={p.name} className="w-10 h-10 rounded object-cover border border-stone-200" />
+                          ) : (
+                            <div className="w-10 h-10 rounded border border-stone-200 bg-stone-100 flex items-center justify-center text-stone-400 text-lg">🛁</div>
+                          )}
+                          <span className="font-medium">{p.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-0.5">
+                          <Badge variant="outline" className="w-fit text-xs">{getCatName(p.category)}</Badge>
+                          <span className="text-xs text-muted-foreground">{getSubName(p.category, p.subCategory)}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-primary">{p.priceText}</td>
+                      <td className="px-4 py-3">
+                        {p.discountRate > 0 ? (
+                          <Badge className="bg-red-500 text-white text-xs">{p.discountRate}% 할인</Badge>
+                        ) : (
+                          <span className="text-stone-400 text-xs">-</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant={p.inStock ? "default" : "secondary"} className="text-xs">{p.inStock ? "재고있음" : "품절"}</Badge>
+                      </td>
+                      <td className="px-4 py-3">
+                        <button onClick={() => toggleVisible(p)} className={`flex items-center gap-1 text-xs font-medium ${p.isVisible ? "text-green-600" : "text-stone-400"}`}>
+                          {p.isVisible ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                          {p.isVisible ? "노출중" : "숨김"}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEdit(p)}>
+                            <Pencil className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteConfirm(p.id)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </TabsContent>
 
-      {/* Add/Edit Modal */}
+        {/* 카테고리 관리 탭 */}
+        <TabsContent value="categories">
+          <CategoryManager categories={categories} onRefresh={fetchCategories} />
+        </TabsContent>
+      </Tabs>
+
+      {/* Add/Edit Product Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -383,85 +616,53 @@ export default function ProductsAdmin() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <Label>상품명 *</Label>
-                  <Input
-                    className="mt-1"
-                    placeholder="상품명을 입력하세요"
-                    value={form.name}
-                    onChange={(e) => setField("name", e.target.value)}
-                  />
+                  <Input className="mt-1" placeholder="상품명을 입력하세요" value={form.name} onChange={(e) => setField("name", e.target.value)} />
                 </div>
                 <div>
                   <Label>카테고리 *</Label>
                   <Select value={form.category} onValueChange={(v) => {
-                    const firstSub = Object.keys(SUB_LABELS[v] || {})[0] || "";
-                    setForm((prev) => ({ ...prev, category: v, subCategory: firstSub }));
+                    const firstSub = categories.filter(c => c.parentSlug === v)[0];
+                    setForm(prev => ({ ...prev, category: v, subCategory: firstSub ? getSubValue(firstSub) : "" }));
                   }}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="카테고리 선택" /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
-                        <SelectItem key={val} value={val}>{label}</SelectItem>
-                      ))}
+                      {topCategories.map(c => <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label>서브카테고리 *</Label>
                   <Select value={form.subCategory} onValueChange={(v) => setField("subCategory", v)}>
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="서브카테고리 선택" /></SelectTrigger>
                     <SelectContent>
-                      {Object.entries(subOptions).map(([val, label]) => (
-                        <SelectItem key={val} value={val}>{label}</SelectItem>
+                      {subCategories.map(c => (
+                        <SelectItem key={c.slug} value={getSubValue(c)}>{c.name}</SelectItem>
                       ))}
+                      {subCategories.length === 0 && (
+                        <SelectItem value={form.subCategory || "_none"} disabled>소분류 없음</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
                   <Label>소재</Label>
-                  <Input
-                    className="mt-1"
-                    placeholder="예: 100% 일본산 히노끼(편백) 원목"
-                    value={form.material}
-                    onChange={(e) => setField("material", e.target.value)}
-                  />
+                  <Input className="mt-1" placeholder="예: 100% 일본산 히노끼(편백) 원목" value={form.material} onChange={(e) => setField("material", e.target.value)} />
                 </div>
                 <div>
                   <Label>표시 순서</Label>
-                  <Input
-                    type="number"
-                    className="mt-1"
-                    placeholder="0"
-                    value={form.sortOrder}
-                    onChange={(e) => setField("sortOrder", e.target.value)}
-                  />
+                  <Input type="number" className="mt-1" placeholder="0" value={form.sortOrder} onChange={(e) => setField("sortOrder", e.target.value)} />
                 </div>
                 <div className="col-span-2">
                   <Label>상품 설명</Label>
-                  <Textarea
-                    className="mt-1 min-h-[160px] text-sm"
-                    placeholder="상품 설명을 입력하세요"
-                    value={form.description}
-                    onChange={(e) => setField("description", e.target.value)}
-                  />
+                  <Textarea className="mt-1 min-h-[160px] text-sm" placeholder="상품 설명을 입력하세요" value={form.description} onChange={(e) => setField("description", e.target.value)} />
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
-                    <Switch
-                      id="inStock"
-                      checked={form.inStock as boolean}
-                      onCheckedChange={(v) => setField("inStock", v)}
-                    />
+                    <Switch id="inStock" checked={form.inStock as boolean} onCheckedChange={(v) => setField("inStock", v)} />
                     <Label htmlFor="inStock">재고있음</Label>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Switch
-                      id="isVisible"
-                      checked={form.isVisible as boolean}
-                      onCheckedChange={(v) => setField("isVisible", v)}
-                    />
+                    <Switch id="isVisible" checked={form.isVisible as boolean} onCheckedChange={(v) => setField("isVisible", v)} />
                     <Label htmlFor="isVisible">쇼핑몰에 노출</Label>
                   </div>
                 </div>
@@ -473,53 +674,27 @@ export default function ProductsAdmin() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label>정가 (원)</Label>
-                  <Input
-                    type="number"
-                    className="mt-1"
-                    placeholder="예: 1320000"
-                    value={form.price}
-                    onChange={(e) => {
-                      setField("price", e.target.value);
-                      if (e.target.value) {
-                        const p = Number(e.target.value);
-                        const dr = Number(form.discountRate);
-                        const formatted = p.toLocaleString("ko-KR") + "원~";
-                        setField("priceText", formatted);
-                      }
-                    }}
-                  />
+                  <Input type="number" className="mt-1" placeholder="예: 1320000" value={form.price} onChange={(e) => {
+                    setField("price", e.target.value);
+                    if (e.target.value) setField("priceText", Number(e.target.value).toLocaleString("ko-KR") + "원~");
+                  }} />
                 </div>
                 <div>
                   <Label>할인율 (%)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    max="100"
-                    className="mt-1"
-                    placeholder="0~100"
-                    value={form.discountRate}
-                    onChange={(e) => setField("discountRate", e.target.value)}
-                  />
+                  <Input type="number" min="0" max="100" className="mt-1" placeholder="0~100" value={form.discountRate} onChange={(e) => setField("discountRate", e.target.value)} />
                 </div>
                 {discountedPrice && (
                   <div className="col-span-2 bg-red-50 border border-red-200 rounded-lg p-4">
                     <p className="text-sm text-red-700 font-medium">
                       할인 적용가: {discountedPrice.toLocaleString("ko-KR")}원
-                      <span className="ml-2 text-xs font-normal text-red-500">
-                        ({form.discountRate}% 할인 → {(Number(form.price) - discountedPrice).toLocaleString("ko-KR")}원 절약)
-                      </span>
+                      <span className="ml-2 text-xs font-normal text-red-500">({form.discountRate}% 할인 → {(Number(form.price) - discountedPrice).toLocaleString("ko-KR")}원 절약)</span>
                     </p>
                   </div>
                 )}
                 <div className="col-span-2">
                   <Label>가격 표시 텍스트</Label>
-                  <Input
-                    className="mt-1"
-                    placeholder="예: 1,320,000원~ / 가격 문의"
-                    value={form.priceText}
-                    onChange={(e) => setField("priceText", e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">쇼핑몰에 실제 표시될 가격 텍스트입니다. 정가 입력 시 자동으로 설정됩니다.</p>
+                  <Input className="mt-1" placeholder="예: 1,320,000원~ / 가격 문의" value={form.priceText} onChange={(e) => setField("priceText", e.target.value)} />
+                  <p className="text-xs text-muted-foreground mt-1">쇼핑몰에 실제 표시될 가격 텍스트입니다.</p>
                 </div>
               </div>
             </TabsContent>
@@ -529,19 +704,12 @@ export default function ProductsAdmin() {
               <div>
                 <Label className="text-sm font-semibold">대표 이미지</Label>
                 <p className="text-xs text-muted-foreground mb-2">상품 목록과 상단에 표시되는 메인 이미지</p>
-                <ImageUploadInput
-                  value={form.imageUrl as string}
-                  onChange={(v) => setField("imageUrl", v)}
-                  label="대표 이미지"
-                />
+                <ImageUploadInput value={form.imageUrl as string} onChange={(v) => setField("imageUrl", v)} label="대표 이미지" />
               </div>
               <div>
                 <Label className="text-sm font-semibold">추가 이미지</Label>
-                <p className="text-xs text-muted-foreground mb-2">상품 상세 페이지에 표시되는 추가 이미지 (여러 장 추가 가능)</p>
-                <AdditionalImagesEditor
-                  images={currentImages}
-                  onChange={(imgs) => setField("additionalImages", JSON.stringify(imgs))}
-                />
+                <p className="text-xs text-muted-foreground mb-2">상품 상세 페이지에 표시되는 추가 이미지</p>
+                <AdditionalImagesEditor images={currentImages} onChange={(imgs) => setField("additionalImages", JSON.stringify(imgs))} />
               </div>
             </TabsContent>
 
@@ -549,30 +717,19 @@ export default function ProductsAdmin() {
             <TabsContent value="options" className="space-y-5 mt-4">
               <div>
                 <Label className="text-sm font-semibold">사이즈 / 규격</Label>
-                <p className="text-xs text-muted-foreground mb-2">제품 치수 또는 규격 정보</p>
-                <Input
-                  className="mt-1"
-                  placeholder="예: 900×600×600(H)mm (기본형, 맞춤제작 가능)"
-                  value={form.sizes}
-                  onChange={(e) => setField("sizes", e.target.value)}
-                />
+                <Input className="mt-1" placeholder="예: 900×600×600(H)mm (기본형, 맞춤제작 가능)" value={form.sizes} onChange={(e) => setField("sizes", e.target.value)} />
               </div>
               <div>
                 <Label className="text-sm font-semibold">선택 옵션</Label>
                 <p className="text-xs text-muted-foreground mb-3">구매 시 고객이 선택할 수 있는 옵션 항목</p>
-                <OptionEditor
-                  options={currentOptions}
-                  onChange={(opts) => setField("options", JSON.stringify(opts))}
-                />
+                <OptionEditor options={currentOptions} onChange={(opts) => setField("options", JSON.stringify(opts))} />
               </div>
             </TabsContent>
           </Tabs>
 
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t">
             <Button variant="outline" onClick={() => setShowModal(false)}>취소</Button>
-            <Button onClick={handleSave} disabled={saving}>
-              {saving ? "저장 중..." : editId ? "수정 완료" : "상품 등록"}
-            </Button>
+            <Button onClick={handleSave} disabled={saving}>{saving ? "저장 중..." : editId ? "수정 완료" : "상품 등록"}</Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -580,54 +737,14 @@ export default function ProductsAdmin() {
       {/* Delete Confirm */}
       <Dialog open={deleteConfirm !== null} onOpenChange={() => setDeleteConfirm(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>상품 삭제</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>상품 삭제</DialogTitle></DialogHeader>
           <p className="text-sm text-muted-foreground">이 상품을 삭제하면 복구할 수 없습니다. 계속하시겠습니까?</p>
           <div className="flex justify-end gap-3 mt-4">
             <Button variant="outline" onClick={() => setDeleteConfirm(null)}>취소</Button>
-            <Button variant="destructive" onClick={() => deleteConfirm !== null && handleDelete(deleteConfirm)}>
-              삭제
-            </Button>
+            <Button variant="destructive" onClick={() => deleteConfirm !== null && handleDelete(deleteConfirm)}>삭제</Button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
-}
-
-function AdditionalImagesEditor({
-  images,
-  onChange,
-}: {
-  images: string[];
-  onChange: (imgs: string[]) => void;
-}) {
-  const addImage = (url: string) => {
-    if (url && !images.includes(url)) onChange([...images, url]);
-  };
-  const removeImage = (i: number) => onChange(images.filter((_, idx) => idx !== i));
-
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-3 gap-3">
-        {images.map((img, i) => (
-          <div key={i} className="relative group rounded-lg overflow-hidden border border-stone-200 aspect-square">
-            <img src={img} alt="" className="w-full h-full object-cover" />
-            <button
-              onClick={() => removeImage(i)}
-              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        ))}
-      </div>
-      <ImageUploadInput
-        value=""
-        onChange={(url) => { if (url) addImage(url); }}
-        label="추가 이미지 업로드"
-      />
     </div>
   );
 }
