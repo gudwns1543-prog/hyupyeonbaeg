@@ -36,6 +36,7 @@ import AdminProducts from "@/pages/admin/ProductsAdmin";
 import PublicLayout from "@/components/layout/PublicLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import ScrollToTop from "@/components/ScrollToTop";
+import { AdminEditBanner } from "@/components/AdminEditBanner";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -156,6 +157,7 @@ function App() {
         <CartProvider>
           <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
             <ScrollToTop />
+            <AdminEditBanner />
             <Router />
           </WouterRouter>
           <Toaster />

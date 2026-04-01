@@ -52,7 +52,6 @@ export function InlineEditText({
       });
       if (res.ok) {
         queryClient.invalidateQueries({ queryKey: ["site-content"] });
-        queryClient.invalidateQueries({ queryKey: ["admin-me"] });
         window.location.reload();
       }
     } catch {
@@ -123,18 +122,18 @@ export function InlineEditText({
 
   return (
     <Tag
-      className={`${className} group/inline relative inline`}
+      className={`${className} group/inline relative`}
+      onClick={() => setIsEditing(true)}
+      style={{ cursor: "pointer" }}
       title="클릭하여 수정"
     >
-      {value}
-      <button
-        onClick={() => setIsEditing(true)}
-        className="inline-flex items-center ml-1.5 opacity-0 group-hover/inline:opacity-100 transition-opacity bg-white text-primary border border-primary/30 rounded px-1.5 py-0.5 text-[10px] gap-0.5 align-middle shadow-sm"
-        title={`"${contentKey}" 수정`}
-      >
+      <span className="group-hover/inline:outline group-hover/inline:outline-1 group-hover/inline:outline-dashed group-hover/inline:outline-primary/50 group-hover/inline:rounded group-hover/inline:bg-primary/5">
+        {value}
+      </span>
+      <span className="inline-flex items-center ml-1.5 opacity-40 group-hover/inline:opacity-100 transition-opacity bg-white text-primary border border-primary/40 rounded px-1.5 py-0.5 text-[10px] gap-0.5 align-middle shadow-sm select-none">
         <Pencil className="w-2.5 h-2.5" />
         수정
-      </button>
+      </span>
     </Tag>
   );
 }
