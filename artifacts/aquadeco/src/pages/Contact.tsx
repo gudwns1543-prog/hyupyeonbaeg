@@ -49,7 +49,7 @@ export default function Contact() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-xs text-muted-foreground mb-1 uppercase tracking-wide">이메일</h3>
-                    <p className="text-sm font-medium text-foreground">info@hyupyeonbaek.kr</p>
+                    <p className="text-sm font-medium text-foreground">phjphk1@naver.com</p>
                   </div>
                 </div>
 
@@ -116,7 +116,7 @@ export default function Contact() {
                   <li><span className="font-medium text-stone-600">대표자:</span> 박형준</li>
                   <li><span className="font-medium text-stone-600">사업자등록번호:</span> 562-49-00093</li>
                   <li><span className="font-medium text-stone-600">사업장 주소:</span> 경기도 화성시 수노을1로 191</li>
-                  <li><span className="font-medium text-stone-600">통신판매신고번호:</span> 2020-화성세살-0070</li>
+                  <li><span className="font-medium text-stone-600">통신판매신고번호:</span> 2020-화성새솔-0070</li>
                 </ul>
               </div>
             </div>

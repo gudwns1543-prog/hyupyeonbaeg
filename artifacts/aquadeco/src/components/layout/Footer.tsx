@@ -33,10 +33,10 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-base mb-5">제품 카테고리</h4>
             <ul className="flex flex-col gap-3 text-sm text-primary-foreground/70">
-              <li>히노끼 반신욕조</li>
-              <li>히노끼 전신욕조</li>
-              <li>주문 제작형 욕조</li>
-              <li>악세사리 (데크수전, 월풀)</li>
+              <li><Link href="/shop/hanshin"><span className="hover:text-white transition-colors cursor-pointer">히노끼 반신욕조</span></Link></li>
+              <li><Link href="/shop/jenshin"><span className="hover:text-white transition-colors cursor-pointer">히노끼 전신욕조</span></Link></li>
+              <li><Link href="/shop/custom"><span className="hover:text-white transition-colors cursor-pointer">주문 제작형 욕조</span></Link></li>
+              <li><Link href="/shop/accessory"><span className="hover:text-white transition-colors cursor-pointer">악세사리 (데크수전, 월풀)</span></Link></li>
             </ul>
           </div>
 
@@ -45,7 +45,7 @@ export default function Footer() {
             <ul className="flex flex-col gap-3 text-sm text-primary-foreground/70">
               <li><strong className="text-primary-foreground">휴대폰:</strong> 010-5918-7778</li>
               <li><strong className="text-primary-foreground">유선/팩스:</strong> 031-501-3069</li>
-              <li><strong className="text-primary-foreground">이메일:</strong> info@hyupyeonbaek.kr</li>
+              <li><strong className="text-primary-foreground">이메일:</strong> phjphk1@naver.com</li>
               <li><strong className="text-primary-foreground">영업시간:</strong> 평일 09:00 - 18:00</li>
             </ul>
           </div>
@@ -56,7 +56,7 @@ export default function Footer() {
             <p>&copy; {new Date().getFullYear()} 휴편백. All rights reserved.</p>
             <span>대표: 박형준</span>
             <span>사업자등록번호: 562-49-00093</span>
-            <span>통신판매신고번호: 2020-화성세살-0070</span>
+            <span>통신판매신고번호: 2020-화성새솔-0070</span>
             <span>사업장: 경기도 화성시 수노을1로 191</span>
           </div>
           <div className="flex gap-4">

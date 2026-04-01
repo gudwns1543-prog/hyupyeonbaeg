@@ -5,6 +5,7 @@ import contentRouter from "./content";
 import inquiriesRouter from "./inquiries";
 import productsRouter from "./products";
 import portfolioRouter from "./portfolio";
+import noticesRouter from "./notices";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use("/content", contentRouter);
 router.use("/inquiries", inquiriesRouter);
 router.use("/products", productsRouter);
 router.use("/portfolio", portfolioRouter);
+router.use("/notices", noticesRouter);
 
 export default router;

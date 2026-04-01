@@ -1,110 +1,75 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Plus, X, Pencil, Trash2, Pin } from "lucide-react";
+import { useGetAdminMe } from "@workspace/api-client-react";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+
+const BASE = "/api/notices";
 
 type Notice = {
   id: number;
   title: string;
-  date: string;
   content: string;
-  isNew?: boolean;
+  isNew: boolean;
+  isPinned: boolean;
+  isActive: boolean;
+  createdAt: string;
 };
 
-const notices: Notice[] = [
-  {
-    id: 1,
-    title: "히노끼욕조 관리방법 업데이트 안내",
-    date: "2025-03-15",
-    isNew: true,
-    content: `안녕하세요, 휴편백입니다.
+function formatDate(iso: string) {
+  return iso.slice(0, 10);
+}
 
-히노끼욕조 관리방법이 업데이트되었습니다.
-
-■ 주요 변경 내용
-- 오일링 주기 안내 변경 (3개월 → 1~2개월)
-- 세척 방법 추가 안내
-- 장기 미사용 시 보관 방법 상세 안내
-
-자세한 관리방법은 사업소개 > 관리방법 페이지를 참고해 주세요.
-
-감사합니다.`,
-  },
-  {
-    id: 2,
-    title: "2025년 설 연휴 운영 안내",
-    date: "2025-01-20",
-    content: `안녕하세요, 휴편백입니다.
-
-2025년 설 연휴 기간(1월 28일 ~ 1월 30일) 동안 휴무입니다.
-
-■ 휴무 기간: 2025년 1월 28일(화) ~ 1월 30일(목)
-■ 정상 운영: 2025년 1월 31일(금)부터 정상 운영
-
-연휴 기간 중 주문/문의 남겨주시면 운영 재개 후 순서대로 처리해 드리겠습니다.
-
-감사합니다.`,
-  },
-  {
-    id: 3,
-    title: "히노끼욕조 악세사리 신제품 출시 안내",
-    date: "2024-11-10",
-    content: `안녕하세요, 휴편백입니다.
-
-히노끼욕조 관련 신규 악세사리 제품이 출시되었습니다.
-
-■ 신규 출시 제품
-- 월풀 시스템 업그레이드 버전
-- 히노끼 원목 외부계단 (2단형)
-
-자세한 내용은 쇼핑 > 악세사리 페이지에서 확인하실 수 있습니다.
-
-감사합니다.`,
-  },
-  {
-    id: 4,
-    title: "원산지 증명서 발급 서비스 안내",
-    date: "2024-09-05",
-    content: `안녕하세요, 휴편백입니다.
-
-휴편백에서 제작한 모든 히노끼욕조에 대해 원산지 증명서를 무료로 발급해 드립니다.
-
-■ 발급 대상: 휴편백 구매 고객 전체
-■ 발급 내용: 일본산 히노끼(편백) 원목 원산지 증명
-■ 발급 방법: 고객센터 또는 견적문의를 통해 신청
-
-100% 정품 일본산 히노끼를 사용하는 휴편백만의 서비스입니다.
-
-감사합니다.`,
-  },
-];
-
-function NoticeItem({ notice }: { notice: Notice }) {
+function NoticeItem({
+  notice,
+  isAdmin,
+  onDelete,
+  onEdit,
+}: {
+  notice: Notice;
+  isAdmin: boolean;
+  onDelete: (id: number) => void;
+  onEdit: (notice: Notice) => void;
+}) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border border-stone-100 rounded-xl overflow-hidden">
+    <div className={cn("border rounded-xl overflow-hidden", notice.isPinned ? "border-primary/30 bg-primary/5" : "border-stone-100")}>
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between px-6 py-4 bg-white hover:bg-stone-50 transition-colors text-left"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {notice.isPinned && <Pin className="w-3.5 h-3.5 text-primary shrink-0" />}
           {notice.isNew && (
             <span className="bg-primary text-white text-xs px-2 py-0.5 rounded font-medium shrink-0">NEW</span>
           )}
-          <span className="text-sm font-medium text-foreground">{notice.title}</span>
+          <span className="text-sm font-medium text-foreground truncate">{notice.title}</span>
         </div>
-        <div className="flex items-center gap-4 shrink-0 ml-4">
-          <span className="text-xs text-muted-foreground">{notice.date}</span>
-          <ChevronDown
-            className={cn(
-              "w-4 h-4 text-stone-400 transition-transform duration-200",
-              open ? "rotate-180" : ""
-            )}
-          />
+        <div className="flex items-center gap-3 shrink-0 ml-4">
+          {isAdmin && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(notice); }}
+                className="text-stone-400 hover:text-primary p-1 rounded"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(notice.id); }}
+                className="text-stone-400 hover:text-red-500 p-1 rounded"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+          <span className="text-xs text-muted-foreground">{formatDate(notice.createdAt)}</span>
+          <ChevronDown className={cn("w-4 h-4 text-stone-400 transition-transform duration-200", open && "rotate-180")} />
         </div>
       </button>
       {open && (
-        <div className="px-6 py-5 border-t border-stone-50 bg-stone-50">
+        <div className="px-6 py-5 border-t border-stone-100 bg-stone-50">
           <pre className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap font-sans">
             {notice.content}
           </pre>
@@ -114,10 +79,135 @@ function NoticeItem({ notice }: { notice: Notice }) {
   );
 }
 
+type FormState = { title: string; content: string; isNew: boolean; isPinned: boolean };
+const emptyForm: FormState = { title: "", content: "", isNew: false, isPinned: false };
+
+function NoticeModal({
+  initial,
+  onClose,
+  onSave,
+}: {
+  initial?: Notice;
+  onClose: () => void;
+  onSave: (data: FormState) => Promise<void>;
+}) {
+  const [form, setForm] = useState<FormState>(
+    initial ? { title: initial.title, content: initial.content, isNew: initial.isNew, isPinned: initial.isPinned } : emptyForm
+  );
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!form.title.trim() || !form.content.trim()) return;
+    setSaving(true);
+    await onSave(form);
+    setSaving(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between px-6 py-4 border-b">
+          <h2 className="font-bold text-lg">{initial ? "공지 수정" : "새 공지 작성"}</h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-stone-100"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="text-sm font-medium mb-1 block">제목</label>
+            <input
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              value={form.title}
+              onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+              placeholder="공지 제목을 입력하세요"
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium mb-1 block">내용</label>
+            <textarea
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-[160px] resize-none"
+              value={form.content}
+              onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+              placeholder="공지 내용을 입력하세요"
+            />
+          </div>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={form.isNew} onChange={(e) => setForm((f) => ({ ...f, isNew: e.target.checked }))} className="accent-primary" />
+              NEW 표시
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" checked={form.isPinned} onChange={(e) => setForm((f) => ({ ...f, isPinned: e.target.checked }))} className="accent-primary" />
+              상단 고정
+            </label>
+          </div>
+        </div>
+        <div className="px-6 pb-6 flex gap-3 justify-end">
+          <Button variant="outline" onClick={onClose}>취소</Button>
+          <Button onClick={handleSave} disabled={saving || !form.title.trim() || !form.content.trim()}>
+            {saving ? "저장 중..." : "저장"}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Notice() {
+  const { data: adminData } = useGetAdminMe();
+  const isAdmin = adminData?.isAdmin === true;
+  const { toast } = useToast();
+
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingNotice, setEditingNotice] = useState<Notice | null>(null);
+
+  const fetchNotices = async () => {
+    try {
+      const res = await fetch(BASE);
+      if (res.ok) setNotices(await res.json());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchNotices(); }, []);
+
+  const handleDelete = async (id: number) => {
+    if (!confirm("이 공지를 삭제하시겠습니까?")) return;
+    await fetch(`${BASE}/${id}`, { method: "DELETE" });
+    setNotices((prev) => prev.filter((n) => n.id !== id));
+    toast({ title: "공지가 삭제되었습니다." });
+  };
+
+  const handleSave = async (data: FormState) => {
+    if (editingNotice) {
+      const res = await fetch(`${BASE}/${editingNotice.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setNotices((prev) => prev.map((n) => (n.id === updated.id ? updated : n)));
+        toast({ title: "공지가 수정되었습니다." });
+      }
+    } else {
+      const res = await fetch(BASE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (res.ok) {
+        await fetchNotices();
+        toast({ title: "공지가 등록되었습니다." });
+      }
+    }
+    setShowModal(false);
+    setEditingNotice(null);
+  };
+
   return (
     <div className="min-h-screen pt-[68px]">
-      {/* Page Header */}
       <div className="bg-stone-800 text-white py-16 px-4">
         <div className="container mx-auto text-center">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">공지사항</h1>
@@ -125,13 +215,48 @@ export default function Notice() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12 max-w-3xl">
-        <div className="space-y-3">
-          {notices.map((notice) => (
-            <NoticeItem key={notice.id} notice={notice} />
-          ))}
+      {isAdmin && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-3">
+          <div className="container mx-auto flex items-center justify-between max-w-3xl">
+            <span className="text-amber-700 text-sm font-medium">관리자 모드 — 공지 작성 및 편집이 가능합니다.</span>
+            <Button
+              size="sm"
+              onClick={() => { setEditingNotice(null); setShowModal(true); }}
+              className="flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" /> 공지 작성
+            </Button>
+          </div>
         </div>
+      )}
+
+      <div className="container mx-auto px-4 py-12 max-w-3xl">
+        {loading ? (
+          <div className="text-center py-12 text-muted-foreground">로딩 중...</div>
+        ) : notices.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">등록된 공지사항이 없습니다.</div>
+        ) : (
+          <div className="space-y-3">
+            {notices.map((notice) => (
+              <NoticeItem
+                key={notice.id}
+                notice={notice}
+                isAdmin={isAdmin}
+                onDelete={handleDelete}
+                onEdit={(n) => { setEditingNotice(n); setShowModal(true); }}
+              />
+            ))}
+          </div>
+        )}
       </div>
+
+      {showModal && (
+        <NoticeModal
+          initial={editingNotice ?? undefined}
+          onClose={() => { setShowModal(false); setEditingNotice(null); }}
+          onSave={handleSave}
+        />
+      )}
     </div>
   );
 }

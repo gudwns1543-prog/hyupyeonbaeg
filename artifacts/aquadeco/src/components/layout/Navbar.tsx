@@ -21,6 +21,7 @@ const navItems: NavItem[] = [
     label: "회사소개",
     href: "/about",
     children: [
+      { label: "CEO 인사말", href: "/about/ceo" },
       { label: "경영이념", href: "/about/philosophy" },
       { label: "주요실적", href: "/about/achievements" },
       { label: "찾아오시는 길", href: "/about/location" },
