@@ -22,7 +22,7 @@ function HinokiSection() {
 
       <div className="grid md:grid-cols-2 gap-12 items-center">
         <img
-          src="https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg"
+          src="/images/hinoki-fullbath.png"
           alt="히노끼 욕조"
           className="rounded-2xl shadow-lg w-full h-80 object-cover"
         />
@@ -377,10 +377,10 @@ export default function BusinessPage() {
   return (
     <div className="min-h-screen pt-[68px]">
       {/* Page Header */}
-      <div className="bg-stone-800 text-white py-16 px-4">
+      <div className="bg-primary text-primary-foreground py-16 px-4">
         <div className="container mx-auto text-center">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">사업소개</h1>
-          <p className="text-stone-300">히노끼욕조에 대해 알아보세요</p>
+          <p className="text-primary-foreground/80">히노끼욕조에 대해 알아보세요</p>
         </div>
       </div>
 

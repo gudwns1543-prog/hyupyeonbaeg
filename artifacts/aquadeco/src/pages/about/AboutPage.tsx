@@ -425,10 +425,10 @@ export default function AboutPage() {
 
   return (
     <div className="min-h-screen pt-[68px]">
-      <div className="bg-stone-800 text-white py-16 px-4">
+      <div className="bg-primary text-primary-foreground py-16 px-4">
         <div className="container mx-auto text-center">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">회사소개</h1>
-          <p className="text-stone-300">휴편백을 소개합니다</p>
+          <p className="text-primary-foreground/80">휴편백을 소개합니다</p>
         </div>
       </div>
 

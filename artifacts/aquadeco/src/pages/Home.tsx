@@ -34,11 +34,11 @@ export default function Home() {
           <span className="inline-block py-1.5 px-4 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs mb-6 tracking-widest uppercase">
             Premium Hinoki Bath Specialist
           </span>
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-6 leading-tight max-w-4xl mx-auto drop-shadow-lg">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white tracking-tight mb-6 leading-tight max-w-4xl mx-auto drop-shadow-lg break-keep whitespace-pre-line">
             {getContent("hero_title", "자연의 향기를 담은\n히노끼 욕조")}
           </h1>
-          <p className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto font-light leading-relaxed drop-shadow">
-            {getContent("hero_subtitle", "일본 히노끼(편백)나무로 만든 최고급 욕조. 피톤치드와 향긋한 나무 향으로 몸과 마음을 치유하세요.")}
+          <p className="text-lg md:text-xl text-white/90 mb-10 max-w-2xl mx-auto font-light leading-relaxed drop-shadow break-keep whitespace-pre-line">
+            {getContent("hero_subtitle", "일본 히노끼(편백)나무로 만든 최고급 욕조.\n피톤치드와 향긋한 나무 향으로 몸과 마음을 치유하세요.")}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/portfolio">
