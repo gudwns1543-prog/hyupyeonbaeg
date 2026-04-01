@@ -1,5 +1,7 @@
 import { Link } from "wouter";
 
+const LOGO_URL = "https://cdn.imweb.me/thumbnail/20250512/ce3e25e3dd553.png";
+
 export default function Footer() {
   return (
     <footer className="bg-primary text-primary-foreground py-16 mt-20">
@@ -7,11 +9,8 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="md:col-span-1">
             <Link href="/">
-              <span className="text-2xl font-bold cursor-pointer tracking-tight flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs font-bold">휴</span>
-                </div>
-                휴편백
+              <span className="flex items-center gap-2 mb-4 cursor-pointer">
+                <img src={LOGO_URL} alt="휴편백" className="h-10 w-auto object-contain brightness-0 invert" />
               </span>
             </Link>
             <p className="text-primary-foreground/70 text-sm leading-relaxed max-w-xs">

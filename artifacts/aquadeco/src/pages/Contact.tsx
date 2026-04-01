@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone, Clock, Printer, Building2 } from "lucide-react";
+import { Mail, MapPin, Phone, Clock, Printer, Building2, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Contact() {
@@ -106,6 +106,25 @@ export default function Contact() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* 네이버 지도 */}
+              <div className="mt-8">
+                <a
+                  href="https://naver.me/GmtG3KT8"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-4 bg-[#03C75A]/10 p-5 rounded-xl border border-[#03C75A]/20 hover:bg-[#03C75A]/20 transition-colors"
+                >
+                  <div className="bg-[#03C75A] w-10 h-10 rounded-full flex items-center justify-center shrink-0">
+                    <MapPin className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-foreground text-sm">네이버 지도에서 길찾기</p>
+                    <p className="text-xs text-muted-foreground">클릭하면 네이버 지도로 이동합니다</p>
+                  </div>
+                  <ExternalLink className="w-4 h-4 text-[#03C75A] shrink-0" />
+                </a>
               </div>
 
               {/* 사업자 정보 */}
