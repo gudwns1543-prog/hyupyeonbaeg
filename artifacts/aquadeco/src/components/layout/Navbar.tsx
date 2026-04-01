@@ -1,7 +1,35 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, ChevronDown, Phone } from "lucide-react";
+import { Menu, X, ChevronDown, Phone, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+const SOCIAL_LINKS = [
+  {
+    label: "스마트스토어",
+    href: "https://smartstore.naver.com/hyu_hinokki",
+    icon: (
+      <ShoppingBag className="w-3.5 h-3.5" />
+    ),
+  },
+  {
+    label: "네이버 블로그",
+    href: "https://blog.naver.com/phjphk1",
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="currentColor">
+        <path d="M16.273 12.845L7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727z" />
+      </svg>
+    ),
+  },
+  {
+    label: "인스타그램",
+    href: "https://instagram.com/the_hyu_hinokki",
+    icon: (
+      <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="currentColor">
+        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+      </svg>
+    ),
+  },
+];
 
 const LOGO_URL = "https://cdn.imweb.me/thumbnail/20250512/ce3e25e3dd553.png";
 
@@ -181,6 +209,32 @@ export default function Navbar() {
         scrolled ? "bg-white/98 backdrop-blur-md shadow-md" : "bg-white/95 backdrop-blur-sm shadow-sm"
       )}
     >
+      {/* Social Top Bar */}
+      <div className="bg-primary text-primary-foreground border-b border-primary-foreground/10">
+        <div className="container mx-auto px-4 md:px-6 flex items-center justify-end h-9 gap-1">
+          {SOCIAL_LINKS.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 transition-colors"
+            >
+              {link.icon}
+              <span className="hidden sm:inline">{link.label}</span>
+            </a>
+          ))}
+          <div className="w-px h-4 bg-primary-foreground/20 mx-1" />
+          <a
+            href="tel:031-501-3069"
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 transition-colors"
+          >
+            <Phone className="w-3 h-3" />
+            <span className="hidden sm:inline">031-501-3069</span>
+          </a>
+        </div>
+      </div>
+
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex items-center justify-between h-16 md:h-[68px]">
           {/* Logo */}

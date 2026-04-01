@@ -424,7 +424,7 @@ export default function AboutPage() {
   const section = (params.section || "ceo") as Section;
 
   return (
-    <div className="min-h-screen pt-[68px]">
+    <div className="min-h-screen pt-[104px]">
       <div className="bg-primary text-primary-foreground py-16 px-4">
         <div className="container mx-auto text-center">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">회사소개</h1>
@@ -432,7 +432,7 @@ export default function AboutPage() {
         </div>
       </div>
 
-      <div className="bg-white border-b border-stone-100 sticky top-[68px] z-30">
+      <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
         <div className="container mx-auto px-4 flex gap-0 overflow-x-auto">
           {TABS.map((tab) => (
             <Link key={tab.key} href={`/about/${tab.key}`}>

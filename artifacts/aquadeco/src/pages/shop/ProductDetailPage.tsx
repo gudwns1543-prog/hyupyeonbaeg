@@ -62,7 +62,7 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-[68px] flex items-center justify-center">
+      <div className="min-h-screen pt-[104px] flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -70,7 +70,7 @@ export default function ProductDetailPage() {
 
   if (!product) {
     return (
-      <div className="min-h-screen pt-[68px] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen pt-[104px] flex flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">제품을 찾을 수 없습니다.</p>
         <Link href="/shop">
           <Button variant="outline">
@@ -84,7 +84,7 @@ export default function ProductDetailPage() {
   const descLines = product.description.split("\n");
 
   return (
-    <div className="min-h-screen pt-[68px]">
+    <div className="min-h-screen pt-[104px]">
       <div className="container mx-auto px-4 py-10 max-w-5xl">
         <Link href="/shop" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary mb-8">
           <ArrowLeft className="w-4 h-4" /> 쇼핑 목록으로

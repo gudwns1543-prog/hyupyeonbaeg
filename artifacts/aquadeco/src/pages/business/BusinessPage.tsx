@@ -375,7 +375,7 @@ export default function BusinessPage() {
   const section = (params.section || "hinoki") as Section;
 
   return (
-    <div className="min-h-screen pt-[68px]">
+    <div className="min-h-screen pt-[104px]">
       {/* Page Header */}
       <div className="bg-primary text-primary-foreground py-16 px-4">
         <div className="container mx-auto text-center">
@@ -385,7 +385,7 @@ export default function BusinessPage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-stone-100 sticky top-[68px] z-30">
+      <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
         <div className="container mx-auto px-4 flex gap-0 overflow-x-auto">
           {TABS.map((tab) => (
             <Link key={tab.key} href={`/business/${tab.key}`}>

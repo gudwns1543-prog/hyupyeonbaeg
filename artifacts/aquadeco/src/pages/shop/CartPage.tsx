@@ -63,7 +63,7 @@ export default function CartPage() {
 
   if (orderComplete) {
     return (
-      <div className="min-h-screen pt-[68px] flex flex-col items-center justify-center gap-6 px-4">
+      <div className="min-h-screen pt-[104px] flex flex-col items-center justify-center gap-6 px-4">
         <div className="text-6xl">✅</div>
         <h2 className="text-2xl font-bold text-center">주문/문의가 접수되었습니다!</h2>
         <p className="text-muted-foreground text-center">
@@ -78,7 +78,7 @@ export default function CartPage() {
   }
 
   return (
-    <div className="min-h-screen pt-[68px]">
+    <div className="min-h-screen pt-[104px]">
       <div className="bg-stone-800 text-white py-16 px-4">
         <div className="container mx-auto text-center">
           <h1 className="text-3xl md:text-4xl font-bold mb-2">장바구니</h1>

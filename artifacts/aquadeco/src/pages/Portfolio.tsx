@@ -251,7 +251,7 @@ export default function Portfolio() {
   };
 
   return (
-    <div className="min-h-screen pt-[68px]">
+    <div className="min-h-screen pt-[104px]">
       {/* 관리자 모드 배너 */}
       {isAdmin && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between">
@@ -277,7 +277,7 @@ export default function Portfolio() {
       </div>
 
       {/* Category Tabs */}
-      <div className="bg-white border-b border-stone-100 sticky top-[68px] z-30">
+      <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
         <div className="container mx-auto px-4 overflow-x-auto">
           <div className="flex gap-0 min-w-max">
             {TABS.map((tab) => (
