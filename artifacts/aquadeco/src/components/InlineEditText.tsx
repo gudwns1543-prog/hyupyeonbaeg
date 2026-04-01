@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Fragment } from "react";
 import { Pencil, Check, X, Loader2 } from "lucide-react";
 import { useAdminMode } from "@/hooks/useAdminMode";
 import { useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,16 @@ interface InlineEditTextProps {
   as?: "p" | "h1" | "h2" | "h3" | "h4" | "span" | "div";
   className?: string;
   multiline?: boolean;
+}
+
+function renderLines(text: string) {
+  const lines = text.split("\n");
+  return lines.map((line, i) => (
+    <Fragment key={i}>
+      {line}
+      {i < lines.length - 1 && <br />}
+    </Fragment>
+  ));
 }
 
 export function InlineEditText({
@@ -73,7 +83,7 @@ export function InlineEditText({
   };
 
   if (!isAdmin) {
-    return <Tag className={className}>{value}</Tag>;
+    return <Tag className={className}>{renderLines(value)}</Tag>;
   }
 
   if (isEditing) {
@@ -87,7 +97,7 @@ export function InlineEditText({
             onKeyDown={handleKeyDown}
             className="w-full border-2 border-primary rounded px-2 py-1 text-inherit font-inherit bg-white text-stone-900 resize-none min-h-[60px]"
             style={{ fontSize: "inherit", lineHeight: "inherit" }}
-            rows={3}
+            rows={4}
           />
         ) : (
           <input
@@ -100,7 +110,7 @@ export function InlineEditText({
             style={{ fontSize: "inherit", lineHeight: "inherit" }}
           />
         )}
-        <span className="flex gap-1">
+        <span className="flex gap-1 items-center">
           <button
             onClick={handleSave}
             disabled={isSaving}
@@ -115,6 +125,9 @@ export function InlineEditText({
           >
             <X className="w-3 h-3" /> 취소
           </button>
+          {multiline && (
+            <span className="text-[10px] text-stone-400 ml-1">Enter = 줄바꿈 / Esc = 취소</span>
+          )}
         </span>
       </span>
     );
@@ -128,7 +141,7 @@ export function InlineEditText({
       title="클릭하여 수정"
     >
       <span className="group-hover/inline:outline group-hover/inline:outline-1 group-hover/inline:outline-dashed group-hover/inline:outline-primary/50 group-hover/inline:rounded group-hover/inline:bg-primary/5">
-        {value}
+        {renderLines(value)}
       </span>
       <span className="inline-flex items-center ml-1.5 opacity-40 group-hover/inline:opacity-100 transition-opacity bg-white text-primary border border-primary/40 rounded px-1.5 py-0.5 text-[10px] gap-0.5 align-middle shadow-sm select-none">
         <Pencil className="w-2.5 h-2.5" />
