@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { ArrowRight, CheckCircle2, ChevronRight, Leaf, ShieldCheck, Award, Truck } from "lucide-react";
 import { useGetSiteContent, getGetSiteContentQueryKey } from "@workspace/api-client-react";
 
-const HERO_IMAGE = "https://cdn.imweb.me/thumbnail/20240905/17a681d712222.jpg";
+const HERO_IMAGE = "/images/hero-main.jpg";
 const HALF_BATH_IMAGE = "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg";
 const FULL_BATH_IMAGE = "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg";
 const HERO_IMAGE2 = "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6573d34824eba.jpg";
@@ -20,14 +20,14 @@ export default function Home() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Hero Section */}
-      <section className="relative h-[92vh] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[70vh] min-h-[520px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
             src={HERO_IMAGE}
             alt="히노끼 욕조 시공"
             className="w-full h-full object-cover object-center"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/30 to-black/60" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/65" />
         </div>
 
         <div className="container relative z-10 mx-auto px-4 text-center animate-in fade-in slide-in-from-bottom-8 duration-1000">
