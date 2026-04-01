@@ -70,18 +70,16 @@ router.put("/:key", async (req, res) => {
   const { value } = bodyParsed.data;
 
   try {
-    const [updated] = await db
-      .update(contentItemsTable)
-      .set({ value, updatedAt: new Date() })
-      .where(eq(contentItemsTable.key, key))
+    const [upserted] = await db
+      .insert(contentItemsTable)
+      .values({ key, value, type: "text" })
+      .onConflictDoUpdate({
+        target: contentItemsTable.key,
+        set: { value, updatedAt: new Date() },
+      })
       .returning();
 
-    if (!updated) {
-      res.status(404).json({ error: "NotFound", message: "콘텐츠를 찾을 수 없습니다" });
-      return;
-    }
-
-    res.json(updated);
+    res.json(upserted);
   } catch (err) {
     req.log.error({ err }, "Failed to update content");
     res.status(500).json({ error: "ServerError", message: "서버 오류가 발생했습니다" });

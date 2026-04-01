@@ -8,7 +8,7 @@ const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 interface InlineEditTextProps {
   contentKey: string;
   value: string;
-  as?: "p" | "h1" | "h2" | "h3" | "span" | "div";
+  as?: "p" | "h1" | "h2" | "h3" | "h4" | "span" | "div";
   className?: string;
   multiline?: boolean;
 }
@@ -129,7 +129,7 @@ export function InlineEditText({
       {value}
       <button
         onClick={() => setIsEditing(true)}
-        className="inline-flex items-center ml-1.5 opacity-0 group-hover/inline:opacity-100 transition-opacity bg-primary/90 text-white rounded px-1.5 py-0.5 text-[10px] gap-0.5 align-middle"
+        className="inline-flex items-center ml-1.5 opacity-0 group-hover/inline:opacity-100 transition-opacity bg-white text-primary border border-primary/30 rounded px-1.5 py-0.5 text-[10px] gap-0.5 align-middle shadow-sm"
         title={`"${contentKey}" 수정`}
       >
         <Pencil className="w-2.5 h-2.5" />
