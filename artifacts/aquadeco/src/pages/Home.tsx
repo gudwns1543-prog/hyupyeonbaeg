@@ -115,7 +115,7 @@ export default function Home() {
           </div>
 
           <div className="text-center mt-10">
-            <Link href="/services">
+            <Link href="/shop">
               <Button variant="link" className="text-primary text-base" data-testid="link-all-products">
                 전체 제품 보기 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
@@ -155,7 +155,7 @@ export default function Home() {
                   </li>
                 ))}
               </ul>
-              <Link href="/contact">
+              <Link href="/about">
                 <Button variant="link" className="px-0 text-primary text-base" data-testid="link-about-contact">
                   회사 소개 더보기 <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
