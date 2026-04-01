@@ -7,6 +7,7 @@ import productsRouter from "./products";
 import portfolioRouter from "./portfolio";
 import noticesRouter from "./notices";
 import scheduleRouter from "./schedule";
+import storageRouter from "./storage";
 
 const router: IRouter = Router();
 
@@ -18,5 +19,6 @@ router.use("/products", productsRouter);
 router.use("/portfolio", portfolioRouter);
 router.use("/notices", noticesRouter);
 router.use("/schedule", scheduleRouter);
+router.use(storageRouter);
 
 export default router;

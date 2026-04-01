@@ -46,7 +46,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside className="w-64 bg-primary text-primary-foreground flex flex-col sticky top-0 h-screen">
         <div className="p-6 border-b border-primary-foreground/10">
-          <h2 className="text-xl font-bold tracking-tight">AquaDeco 관리자</h2>
+          <h2 className="text-xl font-bold tracking-tight">휴편백 관리자</h2>
         </div>
         
         <nav className="flex-1 p-4 flex flex-col gap-2">

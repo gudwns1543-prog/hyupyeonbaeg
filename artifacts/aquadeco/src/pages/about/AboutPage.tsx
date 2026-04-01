@@ -26,7 +26,7 @@ function CeoGreeting() {
         <div className="md:col-span-2 flex flex-col items-center text-center">
           <div className="w-64 h-80 rounded-2xl overflow-hidden shadow-lg mb-6">
             <img
-              src="/images/ceo-photo.jpg"
+              src="/images/ceo-photo.png"
               alt="대표이사 박형준"
               className="w-full h-full object-cover object-top"
             />

@@ -5,9 +5,10 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useGetAdminMe } from "@workspace/api-client-react";
 import {
-  Pencil, Trash2, Plus, X, Check, Loader2, ImageIcon
+  Pencil, Trash2, Plus, X, Check, Loader2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUploadInput } from "@/components/ui/ImageUploadInput";
 
 type PortfolioItem = {
   id: number;
@@ -90,7 +91,6 @@ function EditModal({
 }) {
   const [form, setForm] = useState<EditFormData>(item);
   const [saving, setSaving] = useState(false);
-  const [previewError, setPreviewError] = useState(false);
 
   const handleCategoryChange = (key: string) => {
     const opt = CATEGORY_OPTIONS.find((o) => o.key === key);
@@ -115,35 +115,15 @@ function EditModal({
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Image URL */}
+          {/* Image Upload */}
           <div>
             <label className="block text-sm font-semibold mb-1.5 text-stone-700">
-              이미지 URL <span className="text-red-500">*</span>
+              이미지 <span className="text-red-500">*</span>
             </label>
-            <input
-              type="url"
+            <ImageUploadInput
               value={form.imageUrl}
-              onChange={(e) => { setForm((f) => ({ ...f, imageUrl: e.target.value })); setPreviewError(false); }}
-              placeholder="https://..."
-              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              onChange={(url) => setForm((f) => ({ ...f, imageUrl: url }))}
             />
-            {form.imageUrl && (
-              <div className="mt-2 rounded-lg overflow-hidden border bg-stone-50 h-36 flex items-center justify-center">
-                {previewError ? (
-                  <div className="flex flex-col items-center text-stone-400 gap-1">
-                    <ImageIcon className="w-8 h-8" />
-                    <span className="text-xs">이미지를 불러올 수 없습니다</span>
-                  </div>
-                ) : (
-                  <img
-                    src={form.imageUrl}
-                    alt="미리보기"
-                    className="h-full w-full object-cover"
-                    onError={() => setPreviewError(true)}
-                  />
-                )}
-              </div>
-            )}
           </div>
 
           {/* Category */}
