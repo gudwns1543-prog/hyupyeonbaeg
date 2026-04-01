@@ -271,32 +271,32 @@ function CareSection() {
 function CertificateSection() {
   const certs = [
     {
-      title: "수입신고필증",
+      title: "수입신고필증 (1/3)",
       desc: "일본에서 히노끼 원목을 수입할 때 세관에서 발급되는 공식 통관 서류입니다. 원목의 원산지, 수량, 수입 경로를 법적으로 증명합니다.",
       icon: "🗂️",
-      imgUrl: "https://cdn.imweb.me/thumbnail/20220107/63a49465fff4d.jpg",
+      imgUrl: "https://cdn.imweb.me/thumbnail/20230131/64aa01833100d.png",
       tag: "통관·원산지",
     },
     {
-      title: "방사능 검사결과지",
+      title: "수입신고필증 (2/3)",
+      desc: "수입 로트별로 발행되는 세관 통관 서류로, 수입 일자·품목·수량·원산지가 상세 기재된 공식 문서입니다.",
+      icon: "🗂️",
+      imgUrl: "https://cdn.imweb.me/thumbnail/20230131/24680d34d0ec6.png",
+      tag: "통관·원산지",
+    },
+    {
+      title: "방사능 성분 검사 시험결과서",
       desc: "일본산 목재의 방사능 오염 여부를 공인 기관에서 검사한 결과서입니다. 휴편백은 매 로트(Lot)별 방사능 검사를 필수로 시행합니다.",
       icon: "☢️",
-      imgUrl: "https://cdn.imweb.me/thumbnail/20220110/8d3f5e9a4c721.jpg",
+      imgUrl: "https://cdn.imweb.me/thumbnail/20230131/1983509ef109e.png",
       tag: "안전 검사",
     },
     {
-      title: "목재 규격 성적서",
-      desc: "사용된 히노끼 원목의 함수율, 규격, 등급(유절·무절·마사메)을 명시한 품질 성적서입니다.",
-      icon: "📋",
-      imgUrl: "https://cdn.imweb.me/thumbnail/20220111/0f63ba036910f.jpg",
-      tag: "품질 인증",
-    },
-    {
-      title: "원산지증명서 (CO)",
-      desc: "일본 정부 또는 수출 상공회의소에서 발급한 공식 원산지 증명서(Certificate of Origin)입니다. 정품 일본산 히노끼임을 국제적으로 보증합니다.",
-      icon: "📜",
-      imgUrl: "https://cdn.imweb.me/thumbnail/20240905/17a681d712222.jpg",
-      tag: "국제 인증",
+      title: "수입신고필증 (3/3)",
+      desc: "모든 히노끼 원목 수입 건에 대해 수입신고필증을 보관하며, 고객 요청 시 해당 로트의 서류를 즉시 제공해 드립니다.",
+      icon: "🗂️",
+      imgUrl: "https://cdn.imweb.me/thumbnail/20230131/24c04b5469d19.png",
+      tag: "통관·원산지",
     },
   ];
 
@@ -325,13 +325,13 @@ function CertificateSection() {
       <div className="grid md:grid-cols-2 gap-6">
         {certs.map((cert, i) => (
           <div key={i} className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
-            <div className="h-48 bg-stone-100 overflow-hidden">
+            <div className="h-56 bg-white border-b border-stone-100 overflow-hidden flex items-center justify-center p-3">
               <img
                 src={cert.imgUrl}
                 alt={cert.title}
-                className="w-full h-full object-cover"
+                className="max-w-full max-h-full object-contain drop-shadow-md"
                 onError={(e) => {
-                  (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-4xl">${cert.icon}</div>`;
+                  (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center text-5xl">${cert.icon}</div>`;
                 }}
               />
             </div>
