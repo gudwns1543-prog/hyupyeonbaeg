@@ -85,7 +85,7 @@ export default function Contact() {
         {/* 채팅 상담 버튼 */}
         <div className="mt-10 flex flex-col sm:flex-row gap-5 justify-center">
           <a
-            href="https://talk.naver.com/"
+            href="https://talk.naver.com/profile/w41j7o"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-4 bg-[#03C75A]/10 p-6 rounded-xl border border-[#03C75A]/20 w-full max-w-sm hover:bg-[#03C75A]/20 transition-colors"

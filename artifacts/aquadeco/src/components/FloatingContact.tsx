@@ -5,7 +5,7 @@ export default function FloatingContact() {
     <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-3">
       {/* Naver Talk Talk */}
       <a
-        href="https://talk.naver.com/"
+        href="https://talk.naver.com/profile/w41j7o"
         target="_blank"
         rel="noreferrer"
         className="w-14 h-14 bg-[#03C75A] rounded-full flex items-center justify-center text-white shadow-lg hover:-translate-y-1 transition-transform"

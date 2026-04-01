@@ -184,14 +184,14 @@ export default function AdminContentEditor() {
           <EditableContentItem 
             itemKey="contact_naver_talk" 
             description="네이버 톡톡 링크 URL" 
-            value={getContentValue("contact_naver_talk", "https://talk.naver.com/")}
+            value={getContentValue("contact_naver_talk", "https://talk.naver.com/profile/w41j7o")}
             type="text"
             onSave={handleSaveItem}
           />
           <EditableContentItem 
             itemKey="contact_kakao_channel" 
             description="카카오톡 채널 링크 URL" 
-            value={getContentValue("contact_kakao_channel", "https://pf.kakao.com/")}
+            value={getContentValue("contact_kakao_channel", "https://pf.kakao.com/_XcSHxj")}
             type="text"
             onSave={handleSaveItem}
           />
