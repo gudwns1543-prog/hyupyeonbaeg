@@ -23,9 +23,9 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-base mb-5">바로가기</h4>
             <ul className="flex flex-col gap-3 text-sm text-primary-foreground/70">
-              <li><Link href="/services"><span className="hover:text-white transition-colors cursor-pointer">사업소개</span></Link></li>
+              <li><Link href="/business"><span className="hover:text-white transition-colors cursor-pointer">사업소개</span></Link></li>
               <li><Link href="/portfolio"><span className="hover:text-white transition-colors cursor-pointer">시공사례</span></Link></li>
-              <li><Link href="/inquiry"><span className="hover:text-white transition-colors cursor-pointer">견적문의</span></Link></li>
+              <li><Link href="/schedule"><span className="hover:text-white transition-colors cursor-pointer">시공일정</span></Link></li>
               <li><Link href="/contact"><span className="hover:text-white transition-colors cursor-pointer">고객센터</span></Link></li>
             </ul>
           </div>
@@ -33,9 +33,9 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-base mb-5">제품 카테고리</h4>
             <ul className="flex flex-col gap-3 text-sm text-primary-foreground/70">
-              <li><Link href="/shop/hanshin"><span className="hover:text-white transition-colors cursor-pointer">히노끼 반신욕조</span></Link></li>
-              <li><Link href="/shop/jenshin"><span className="hover:text-white transition-colors cursor-pointer">히노끼 전신욕조</span></Link></li>
-              <li><Link href="/shop/custom"><span className="hover:text-white transition-colors cursor-pointer">주문 제작형 욕조</span></Link></li>
+              <li><Link href="/shop/bath/half"><span className="hover:text-white transition-colors cursor-pointer">히노끼 반신욕조</span></Link></li>
+              <li><Link href="/shop/bath/full"><span className="hover:text-white transition-colors cursor-pointer">히노끼 전신욕조</span></Link></li>
+              <li><Link href="/shop/bath/custom"><span className="hover:text-white transition-colors cursor-pointer">주문 제작형 욕조</span></Link></li>
               <li><Link href="/shop/accessory"><span className="hover:text-white transition-colors cursor-pointer">악세사리 (데크수전, 월풀)</span></Link></li>
             </ul>
           </div>

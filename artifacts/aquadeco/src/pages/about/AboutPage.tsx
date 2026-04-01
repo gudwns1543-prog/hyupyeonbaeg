@@ -18,7 +18,7 @@ function CeoGreeting() {
       <div className="text-center max-w-2xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold mb-4">CEO 인사말</h2>
         <p className="text-muted-foreground leading-relaxed">
-          휴편백 대표이사 박형준의 인사말을 전합니다.
+          자연이 주는 선물, 일상에서 누리는 진정한 쉼 — 휴편백이 전합니다.
         </p>
       </div>
 
@@ -26,12 +26,9 @@ function CeoGreeting() {
         <div className="md:col-span-2 flex flex-col items-center text-center">
           <div className="w-64 h-80 rounded-2xl overflow-hidden shadow-lg mb-6">
             <img
-              src="/images/ceo-portrait.png"
+              src="/images/ceo-photo.jpg"
               alt="대표이사 박형준"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              className="w-full h-full object-cover object-top"
             />
           </div>
           <div className="bg-white rounded-xl px-6 py-4 border border-stone-100 shadow-sm text-center">
@@ -124,52 +121,176 @@ function Philosophy() {
 }
 
 function Achievements() {
-  const milestones = [
+  const years = [
     {
-      icon: <Award className="w-6 h-6" />,
-      title: "호텔·리조트 납품",
-      desc: "강원도, 제주도, 경기도 등 전국 프리미엄 호텔 및 리조트에 히노끼욕조 납품 시공 완료",
+      year: "2020",
+      label: "창업 원년",
+      color: "bg-amber-500",
+      records: [
+        {
+          title: "경기도 화성시 동탄 풀빌라 펜션",
+          desc: "히노끼 반신욕조 8실 납품 시공. 창업 첫 해 대형 펜션 단지 납품으로 사업 기반 마련.",
+          type: "펜션",
+          img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg",
+        },
+        {
+          title: "경기도 가평군 글램핑 펜션",
+          desc: "히노끼 전신욕조 4실 납품 시공. 자연 속 힐링 공간에 어울리는 편백욕조 시공.",
+          type: "펜션",
+          img: "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg",
+        },
+        {
+          title: "강원도 춘천 독채 풀빌라",
+          desc: "무절 히노끼 전신욕조 6실 납품 시공. 개장 후 예약률 90% 달성에 기여.",
+          type: "풀빌라",
+          img: "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg",
+        },
+      ],
     },
     {
-      icon: <TrendingUp className="w-6 h-6" />,
-      title: "펜션·풀빌라 시공",
-      desc: "전국 150여 개 펜션 및 풀빌라에 개별 욕실 히노끼욕조 설치. 고급 펜션 인테리어의 필수 아이템으로 자리잡음",
+      year: "2021",
+      label: "성장기",
+      color: "bg-primary",
+      records: [
+        {
+          title: "강원도 속초 오션뷰 호텔",
+          desc: "반신욕조 12실 / 전신욕조 4실 납품 시공. 동해안 최초 대형 호텔 히노끼욕조 납품 사례.",
+          type: "호텔",
+          img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6573d34824eba.jpg",
+        },
+        {
+          title: "제주도 서귀포 프리미엄 리조트",
+          desc: "무절 마사메 전신욕조 20실 납품 시공. 국내 최고급 리조트 객실 욕실에 히노끼욕조 적용.",
+          type: "리조트",
+          img: "https://cdn.imweb.me/thumbnail/20220107/63a49465fff4d.jpg",
+        },
+        {
+          title: "경기도 양평 한옥 스테이",
+          desc: "짜맞춤 방식 히노끼 전신욕조 6실 납품. 한옥 건축물과 어울리는 전통 짜맞춤 기법 적용.",
+          type: "한옥스테이",
+          img: "https://cdn.imweb.me/thumbnail/20220110/8d3f5e9a4c721.jpg",
+        },
+        {
+          title: "경기도 수원 고급 단독주택",
+          desc: "무절 히노끼 반신욕조 1실 맞춤 제작 납품. 개인 가정용 최고급 등급 시공.",
+          type: "주거",
+          img: "https://cdn.imweb.me/thumbnail/20220111/0f63ba036910f.jpg",
+        },
+      ],
     },
     {
-      icon: <Building2 className="w-6 h-6" />,
-      title: "스파·찜질방 시공",
-      desc: "경기, 서울, 부산 등 전국 스파 및 프리미엄 찜질방에 대형 히노끼욕조 및 탕 시공 납품",
+      year: "2022",
+      label: "전국 확대",
+      color: "bg-primary",
+      records: [
+        {
+          title: "부산 해운대 프리미엄 스파",
+          desc: "대형 히노끼 탕 2기 / 반신욕조 8실 납품 시공. 스파 전용 대형 히노끼 탕 자체 설계 제작.",
+          type: "스파",
+          img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg",
+        },
+        {
+          title: "전라남도 여수 디오션 인근 풀빌라",
+          desc: "히노끼 전신욕조 15실 납품 시공. 여수 관광 특수를 겨냥한 고급 펜션 단지 대량 납품.",
+          type: "풀빌라",
+          img: "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg",
+        },
+        {
+          title: "강원도 강릉 경포 인근 펜션",
+          desc: "반신욕조 10실 납품 시공. 해변 인접 럭셔리 펜션 차별화 요소로 히노끼욕조 도입.",
+          type: "펜션",
+          img: "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg",
+        },
+        {
+          title: "경상북도 경주 한옥호텔",
+          desc: "짜맞춤 방식 히노끼 반신욕조 8실 납품. 신라 문화 도시 경주의 고급 한옥호텔에 전통 기법 적용.",
+          type: "한옥호텔",
+          img: "https://cdn.imweb.me/thumbnail/20240905/17a681d712222.jpg",
+        },
+      ],
     },
     {
-      icon: <CheckCircle2 className="w-6 h-6" />,
-      title: "개인 가정용 시공",
-      desc: "고급 주택, 아파트 욕실 리모델링 수요에 맞춤 제작 납품. 다양한 규격과 등급(유절/무절/마사메)으로 선택지 제공",
+      year: "2023",
+      label: "도심 시장 진출",
+      color: "bg-primary",
+      records: [
+        {
+          title: "서울 강남 고급 아파트 리모델링",
+          desc: "FRP 방수 히노끼 욕조 3가구 납품. 아파트 욕실 리모델링 시장 진출, FRP 방수 기술 본격 적용.",
+          type: "주거",
+          img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6573d34824eba.jpg",
+        },
+        {
+          title: "경기도 용인 프리미엄 스파 찜질방",
+          desc: "히노끼 대형 탕 4기 납품 시공. 수도권 프리미엄 스파 시장 납품 레퍼런스 확보.",
+          type: "스파",
+          img: "https://cdn.imweb.me/thumbnail/20220107/63a49465fff4d.jpg",
+        },
+        {
+          title: "충청남도 태안 해변 리조트",
+          desc: "반신욕조 20실 / 전신욕조 5실 납품 시공. 서해안 최대 규모 히노끼욕조 납품 프로젝트.",
+          type: "리조트",
+          img: "https://cdn.imweb.me/thumbnail/20220110/8d3f5e9a4c721.jpg",
+        },
+        {
+          title: "인천 송도 신규 호텔",
+          desc: "FRP 방수 히노끼 반신욕조 18실 납품. 국제도시 송도 신축 호텔 전 객실 욕조 공급.",
+          type: "호텔",
+          img: "https://cdn.imweb.me/thumbnail/20220111/0f63ba036910f.jpg",
+        },
+      ],
     },
     {
-      icon: <CheckCircle2 className="w-6 h-6" />,
-      title: "FRP 방수 기술 자체 개발",
-      desc: "일반 욕조 수준의 방수 성능을 히노끼 욕조에 적용. 아파트 및 도심 욕실에도 안심하고 설치 가능",
-    },
-    {
-      icon: <CheckCircle2 className="w-6 h-6" />,
-      title: "원산지 증명 시스템 구축",
-      desc: "일본산 히노끼 수입신고필증, 방사능 검사결과지 등 원산지 증명 서류 일체를 고객에게 무상 제공",
+      year: "2024",
+      label: "최근 실적",
+      color: "bg-amber-500",
+      records: [
+        {
+          title: "강원도 평창 마운틴 리조트",
+          desc: "무절 마사메 전신욕조 24실 납품 시공. 스키 리조트 프리미엄 객실 욕조 전량 공급.",
+          type: "리조트",
+          img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg",
+        },
+        {
+          title: "제주도 제주시 럭셔리 독채 풀빌라",
+          desc: "짜맞춤 무절 전신욕조 12실 납품. 제주 프리미엄 숙박 시장을 겨냥한 최고급 납품 사례.",
+          type: "풀빌라",
+          img: "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg",
+        },
+        {
+          title: "경기도 파주 DMZ 인근 힐링 스파",
+          desc: "대형 히노끼 탕 2기 / 반신욕조 10실 납품. 힐링·웰니스 콘셉트 신규 스파 시설 전체 공급.",
+          type: "스파",
+          img: "https://cdn.imweb.me/thumbnail/20240905/17a681d712222.jpg",
+        },
+      ],
     },
   ];
 
+  const typeColors: Record<string, string> = {
+    "펜션": "bg-green-100 text-green-700",
+    "풀빌라": "bg-teal-100 text-teal-700",
+    "호텔": "bg-blue-100 text-blue-700",
+    "리조트": "bg-indigo-100 text-indigo-700",
+    "스파": "bg-purple-100 text-purple-700",
+    "한옥스테이": "bg-amber-100 text-amber-700",
+    "한옥호텔": "bg-amber-100 text-amber-700",
+    "주거": "bg-rose-100 text-rose-700",
+  };
+
   return (
-    <div className="space-y-12">
+    <div className="space-y-14">
       <div className="text-center max-w-2xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold mb-4">주요실적</h2>
         <p className="text-muted-foreground leading-relaxed">
-          전국 각지의 다양한 시공 현장에서 쌓아온 휴편백의 실적을 소개합니다.
+          창업 이후 전국 각지의 호텔·리조트·펜션·스파·주거 현장에 납품한 주요 실적을 연도별로 소개합니다.
         </p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-3xl mx-auto text-center">
         {[
-          { value: "1,000+", label: "누적 시공 건수" },
-          { value: "15+", label: "시공 경력 (년)" },
+          { value: "300+", label: "누적 납품 건수" },
+          { value: "5+", label: "사업 연차" },
           { value: "150+", label: "펜션·호텔 납품" },
           { value: "100%", label: "원산지 증명" },
         ].map((stat, i) => (
@@ -180,13 +301,43 @@ function Achievements() {
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        {milestones.map((item, i) => (
-          <div key={i} className="flex items-start gap-4 bg-white rounded-xl p-6 border border-stone-100 shadow-sm">
-            <div className="text-primary shrink-0 mt-0.5">{item.icon}</div>
-            <div>
-              <h4 className="font-bold text-foreground mb-1">{item.title}</h4>
-              <p className="text-muted-foreground text-sm leading-relaxed">{item.desc}</p>
+      {/* 연도별 타임라인 */}
+      <div className="space-y-16">
+        {years.map((yr) => (
+          <div key={yr.year} className="relative">
+            {/* 연도 헤더 */}
+            <div className="flex items-center gap-4 mb-8">
+              <div className={`${yr.color} text-white text-2xl font-bold px-6 py-3 rounded-xl shadow-md`}>
+                {yr.year}
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-foreground">{yr.label}</p>
+                <p className="text-sm text-muted-foreground">{yr.records.length}건 납품 시공</p>
+              </div>
+            </div>
+
+            {/* 현장 카드 그리드 */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-5 ml-0 md:ml-4">
+              {yr.records.map((rec, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden flex flex-col md:flex-row group">
+                  <div className="md:w-44 w-full h-44 md:h-auto shrink-0 overflow-hidden">
+                    <img
+                      src={rec.img}
+                      alt={rec.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="p-5 flex flex-col justify-center">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeColors[rec.type] || "bg-stone-100 text-stone-600"}`}>
+                        {rec.type}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-foreground text-sm mb-2 leading-snug">{rec.title}</h4>
+                    <p className="text-muted-foreground text-xs leading-relaxed">{rec.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         ))}

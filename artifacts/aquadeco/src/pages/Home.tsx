@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { ArrowRight, CheckCircle2, ChevronRight, Leaf, ShieldCheck, Award, Truck } from "lucide-react";
 import { useGetSiteContent, getGetSiteContentQueryKey } from "@workspace/api-client-react";
 
-const HERO_IMAGE = "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg";
+const HERO_IMAGE = "https://cdn.imweb.me/thumbnail/20240905/17a681d712222.jpg";
 const HALF_BATH_IMAGE = "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg";
 const FULL_BATH_IMAGE = "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg";
 const HERO_IMAGE2 = "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6573d34824eba.jpg";
@@ -41,14 +41,14 @@ export default function Home() {
             {getContent("hero_subtitle", "일본 히노끼(편백)나무로 만든 최고급 욕조. 피톤치드와 향긋한 나무 향으로 몸과 마음을 치유하세요.")}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/inquiry">
-              <Button size="lg" className="text-base px-8 h-14 w-full sm:w-auto shadow-lg" data-testid="btn-hero-inquiry">
-                무료 견적 상담 <ArrowRight className="ml-2 w-5 h-5" />
+            <Link href="/portfolio">
+              <Button size="lg" className="text-base px-10 h-14 w-full sm:w-auto shadow-lg" data-testid="btn-hero-portfolio">
+                시공사례 보기 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Link href="/portfolio">
-              <Button size="lg" variant="outline" className="text-base px-8 h-14 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white w-full sm:w-auto" data-testid="btn-hero-portfolio">
-                시공사례 보기
+            <Link href="/shop">
+              <Button size="lg" variant="outline" className="text-base px-10 h-14 bg-white/10 text-white border-white/30 hover:bg-white/20 hover:text-white w-full sm:w-auto" data-testid="btn-hero-shop">
+                제품 둘러보기
               </Button>
             </Link>
           </div>
@@ -81,9 +81,9 @@ export default function Home() {
                 <h3 className="text-2xl font-bold text-foreground mb-2">히노끼 반신욕조</h3>
                 <p className="text-muted-foreground mb-4 leading-relaxed text-sm">욕실 공간을 효율적으로 활용하는 반신욕 전용 욕조. 편백나무의 피톤치드 효과로 혈액순환과 피로회복에 탁월합니다.</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-primary">1,320,000원</span>
-                  <Link href="/inquiry">
-                    <Button size="sm" variant="outline" data-testid="btn-halfbath-inquiry">견적 문의</Button>
+                  <span className="text-2xl font-bold text-primary">1,320,000원~</span>
+                  <Link href="/shop/bath/half">
+                    <Button size="sm" variant="outline" data-testid="btn-halfbath-shop">제품 보기</Button>
                   </Link>
                 </div>
               </div>
@@ -105,9 +105,9 @@ export default function Home() {
                 <h3 className="text-2xl font-bold text-foreground mb-2">히노끼 전신욕조</h3>
                 <p className="text-muted-foreground mb-4 leading-relaxed text-sm">전신을 편안하게 담글 수 있는 전신욕 전용 욕조. 자연 방부 효과로 오랫동안 위생적으로 사용 가능합니다.</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-primary">1,650,000원</span>
-                  <Link href="/inquiry">
-                    <Button size="sm" variant="outline" data-testid="btn-fullbath-inquiry">견적 문의</Button>
+                  <span className="text-2xl font-bold text-primary">1,650,000원~</span>
+                  <Link href="/shop/bath/full">
+                    <Button size="sm" variant="outline" data-testid="btn-fullbath-shop">제품 보기</Button>
                   </Link>
                 </div>
               </div>
@@ -216,21 +216,28 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA 섹션 */}
+      {/* 연락처 섹션 */}
       <section className="py-24 bg-white">
-        <div className="container mx-auto px-4 text-center">
+        <div className="container mx-auto px-4 text-center max-w-2xl">
           <Leaf className="w-14 h-14 text-primary mx-auto mb-6" />
-          <h2 className="text-3xl md:text-5xl font-bold mb-6 text-foreground">
-            지금 바로 견적을 받아보세요
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-foreground">
+            궁금하신 점이 있으신가요?
           </h2>
-          <p className="text-muted-foreground text-base mb-10 max-w-2xl mx-auto leading-relaxed">
-            히노끼욕조 제품 구매부터 현장 시공까지, 휴편백 전문 상담사가 최적의 솔루션을 안내해 드립니다.
+          <p className="text-muted-foreground text-base mb-10 leading-relaxed">
+            히노끼욕조에 대한 어떤 질문이든 편하게 연락 주세요.<br />전문 상담사가 친절하게 안내해 드립니다.
           </p>
-          <Link href="/inquiry">
-            <Button size="lg" className="text-base px-10 h-14 shadow-md" data-testid="btn-bottom-inquiry">
-              무료 견적 문의하기
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="tel:010-5918-7778">
+              <Button size="lg" className="text-base px-10 h-14 shadow-md w-full sm:w-auto">
+                📞 010-5918-7778
+              </Button>
+            </a>
+            <Link href="/contact">
+              <Button size="lg" variant="outline" className="text-base px-10 h-14 w-full sm:w-auto" data-testid="btn-bottom-contact">
+                고객센터 바로가기
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
     </div>

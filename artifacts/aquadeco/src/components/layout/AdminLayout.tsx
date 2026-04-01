@@ -1,13 +1,14 @@
 import { ReactNode, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useGetAdminMe, getGetAdminMeQueryKey, useAdminLogout } from "@workspace/api-client-react";
-import { LayoutDashboard, ListTodo, FileText, LogOut, Home } from "lucide-react";
+import { LayoutDashboard, ListTodo, FileText, LogOut, Home, CalendarDays } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 
 const adminLinks = [
   { href: "/admin", label: "대시보드", icon: LayoutDashboard },
   { href: "/admin/inquiries", label: "문의 관리", icon: ListTodo },
+  { href: "/admin/schedule", label: "시공일정 관리", icon: CalendarDays },
   { href: "/admin/content", label: "콘텐츠 관리", icon: FileText },
 ];
 

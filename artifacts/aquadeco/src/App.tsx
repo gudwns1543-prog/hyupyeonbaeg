@@ -29,6 +29,7 @@ import AdminLogin from "@/pages/admin/Login";
 import AdminDashboard from "@/pages/admin/Dashboard";
 import AdminInquiries from "@/pages/admin/Inquiries";
 import AdminContentEditor from "@/pages/admin/ContentEditor";
+import AdminSchedule from "@/pages/admin/ScheduleAdmin";
 
 // Layouts
 import PublicLayout from "@/components/layout/PublicLayout";
@@ -58,6 +59,9 @@ function Router() {
       </Route>
       <Route path="/admin/content">
         <AdminLayout><AdminContentEditor /></AdminLayout>
+      </Route>
+      <Route path="/admin/schedule">
+        <AdminLayout><AdminSchedule /></AdminLayout>
       </Route>
 
       {/* Public Routes */}
