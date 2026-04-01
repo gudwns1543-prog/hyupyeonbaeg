@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { MapPin, CheckCircle2, Phone, Mail, Printer, Building2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineEditText } from "@/components/InlineEditText";
+import { InlineEditImage } from "@/components/InlineEditImage";
 import { useSiteContent } from "@/hooks/useSiteContent";
 
 type Section = "ceo" | "philosophy" | "achievements" | "location";
@@ -31,7 +32,13 @@ function CeoGreeting() {
       <div className="grid md:grid-cols-5 gap-12 items-start">
         <div className="md:col-span-2 flex flex-col items-center text-center">
           <div className="w-64 h-80 rounded-2xl overflow-hidden shadow-lg mb-6">
-            <img src="/images/ceo-photo.png" alt="대표이사 박형준" className="w-full h-full object-cover object-top" />
+            <InlineEditImage
+              contentKey="img_ceo_photo"
+              src={gc("img_ceo_photo", "/images/ceo-photo.png")}
+              alt="대표이사 박형준"
+              containerClassName="w-full h-full"
+              imgClassName="w-full h-full object-cover object-top"
+            />
           </div>
           <div className="bg-white rounded-xl px-6 py-4 border border-stone-100 shadow-sm text-center">
             <p className="text-xs text-muted-foreground mb-1">휴편백 대표이사</p>

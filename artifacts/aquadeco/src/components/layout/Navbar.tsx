@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, ChevronDown, Phone, ShoppingBag } from "lucide-react";
+import { Menu, X, ChevronDown, Phone, ShoppingBag, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/context/CartContext";
 
 const SOCIAL_LINKS = [
   {
@@ -184,6 +185,7 @@ export default function Navbar() {
   const [expandedMobile, setExpandedMobile] = useState<string | null>(null);
   const [location] = useLocation();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { totalCount } = useCart();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -299,15 +301,29 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* Phone + Mobile Toggle */}
-          <div className="flex items-center gap-3">
+          {/* Phone + Cart + Mobile Toggle */}
+          <div className="flex items-center gap-2">
             <a
               href="tel:010-5918-7778"
-              className="hidden xl:flex items-center gap-1.5 text-sm font-medium text-stone-700 hover:text-primary transition-colors"
+              className="hidden xl:flex items-center gap-1.5 text-sm font-medium text-stone-700 hover:text-primary transition-colors mr-1"
             >
               <Phone className="w-4 h-4 text-primary" />
               <span>010-5918-7778</span>
             </a>
+            <Link href="/shop/cart">
+              <button
+                className="relative p-2 rounded-md text-stone-700 hover:text-primary transition-colors"
+                aria-label="장바구니"
+                data-testid="btn-cart"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {totalCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-primary text-white text-[10px] font-bold rounded-full flex items-center justify-center px-0.5">
+                    {totalCount > 9 ? "9+" : totalCount}
+                  </span>
+                )}
+              </button>
+            </Link>
             <button
               className="lg:hidden p-2 rounded-md text-stone-700 hover:text-primary transition-colors"
               onClick={() => setMobileOpen((v) => !v)}

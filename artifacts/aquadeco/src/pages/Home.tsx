@@ -3,11 +3,12 @@ import { Link } from "wouter";
 import { ArrowRight, CheckCircle2, ChevronRight, Leaf, ShieldCheck, Award, Truck } from "lucide-react";
 import { useGetSiteContent, getGetSiteContentQueryKey } from "@workspace/api-client-react";
 import { InlineEditText } from "@/components/InlineEditText";
+import { InlineEditImage } from "@/components/InlineEditImage";
 
-const HERO_IMAGE = "/images/hero-main.jpg";
-const HALF_BATH_IMAGE = "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg";
-const FULL_BATH_IMAGE = "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg";
-const HERO_IMAGE2 = "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6573d34824eba.jpg";
+const DEFAULT_HERO_IMAGE = "/images/hero-main.jpg";
+const DEFAULT_HALF_BATH_IMAGE = "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg";
+const DEFAULT_FULL_BATH_IMAGE = "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg";
+const DEFAULT_HERO_IMAGE2 = "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6573d34824eba.jpg";
 
 const FEATURE_ICONS = [Leaf, ShieldCheck, Award, Truck];
 
@@ -26,7 +27,13 @@ export default function Home() {
       {/* ── Hero Section ── */}
       <section className="relative h-[70vh] min-h-[520px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img src={HERO_IMAGE} alt="히노끼 욕조 시공" className="w-full h-full object-cover object-center" />
+          <InlineEditImage
+            contentKey="img_hero_main"
+            src={gc("img_hero_main", DEFAULT_HERO_IMAGE)}
+            alt="히노끼 욕조 시공"
+            containerClassName="w-full h-full"
+            imgClassName="w-full h-full object-cover object-center"
+          />
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/35 to-black/65" />
         </div>
         <div className="container relative z-10 mx-auto px-4 text-center animate-in fade-in slide-in-from-bottom-8 duration-1000">
@@ -86,7 +93,13 @@ export default function Home() {
             {/* 반신욕조 */}
             <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-stone-100">
               <div className="relative h-72 overflow-hidden">
-                <img src={HALF_BATH_IMAGE} alt="히노끼 반신욕조" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <InlineEditImage
+                  contentKey="img_half_bath"
+                  src={gc("img_half_bath", DEFAULT_HALF_BATH_IMAGE)}
+                  alt="히노끼 반신욕조"
+                  containerClassName="w-full h-full"
+                  imgClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
                 <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-bold px-3 py-1.5 rounded-full">BEST</div>
               </div>
               <div className="p-8">
@@ -120,7 +133,13 @@ export default function Home() {
             {/* 전신욕조 */}
             <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 group border border-stone-100">
               <div className="relative h-72 overflow-hidden">
-                <img src={FULL_BATH_IMAGE} alt="히노끼 전신욕조" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <InlineEditImage
+                  contentKey="img_full_bath"
+                  src={gc("img_full_bath", DEFAULT_FULL_BATH_IMAGE)}
+                  alt="히노끼 전신욕조"
+                  containerClassName="w-full h-full"
+                  imgClassName="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
                 <div className="absolute top-4 right-4 bg-amber-600 text-white text-xs font-bold px-3 py-1.5 rounded-full">BEST</div>
               </div>
               <div className="p-8">
@@ -168,8 +187,20 @@ export default function Home() {
           <div className="grid md:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
             <div className="order-2 md:order-1">
               <div className="grid grid-cols-2 gap-4">
-                <img src={HERO_IMAGE2} alt="히노끼욕조 시공" className="rounded-xl shadow-lg w-full h-56 object-cover" />
-                <img src={FULL_BATH_IMAGE} alt="전신욕조" className="rounded-xl shadow-lg w-full h-56 object-cover mt-8" />
+                <InlineEditImage
+                  contentKey="img_about_1"
+                  src={gc("img_about_1", DEFAULT_HERO_IMAGE2)}
+                  alt="히노끼욕조 시공"
+                  containerClassName="rounded-xl shadow-lg w-full h-56 overflow-hidden"
+                  imgClassName="w-full h-full object-cover"
+                />
+                <InlineEditImage
+                  contentKey="img_about_2"
+                  src={gc("img_about_2", DEFAULT_FULL_BATH_IMAGE)}
+                  alt="전신욕조"
+                  containerClassName="rounded-xl shadow-lg w-full h-56 overflow-hidden mt-8"
+                  imgClassName="w-full h-full object-cover"
+                />
               </div>
             </div>
             <div className="order-1 md:order-2">

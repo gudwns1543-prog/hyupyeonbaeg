@@ -1,6 +1,7 @@
 import { Link, useParams } from "wouter";
 import { cn } from "@/lib/utils";
 import { InlineEditText } from "@/components/InlineEditText";
+import { InlineEditImage } from "@/components/InlineEditImage";
 import { useSiteContent } from "@/hooks/useSiteContent";
 
 type Section = "hinoki" | "production" | "care" | "certificate";
@@ -28,7 +29,13 @@ function HinokiSection() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-12 items-center">
-        <img src="/images/hinoki-fullbath.png" alt="히노끼 욕조" className="rounded-2xl shadow-lg w-full h-80 object-cover" />
+        <InlineEditImage
+          contentKey="img_hinoki_bath"
+          src={gc("img_hinoki_bath", "/images/hinoki-fullbath.png")}
+          alt="히노끼 욕조"
+          containerClassName="rounded-2xl shadow-lg w-full h-80 overflow-hidden"
+          imgClassName="w-full h-full object-cover"
+        />
         <div className="space-y-6">
           <div>
             <InlineEditText contentKey="hinoki_block1_title" value={gc("hinoki_block1_title", "피톤치드 효과")} as="h3" className="text-xl font-bold mb-2" />
@@ -80,7 +87,13 @@ function ProductionSection() {
       {/* FRP 방수 방식 */}
       <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
         <div className="grid md:grid-cols-2 gap-0">
-          <img src="https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg" alt="FRP 방수 히노끼욕조" className="w-full h-72 md:h-full object-cover" />
+          <InlineEditImage
+            contentKey="img_frp_production"
+            src={gc("img_frp_production", "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg")}
+            alt="FRP 방수 히노끼욕조"
+            containerClassName="w-full h-72 md:h-full"
+            imgClassName="w-full h-full object-cover"
+          />
           <div className="p-8 md:p-10 flex flex-col justify-center">
             <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-semibold mb-5 w-fit">제작방식 01</div>
             <InlineEditText contentKey="frp_title" value={gc("frp_title", "FRP 방수 제작방식")} as="h3" className="text-2xl font-bold mb-4" />
@@ -151,7 +164,13 @@ function ProductionSection() {
               ))}
             </ul>
           </div>
-          <img src="https://cdn.imweb.me/thumbnail/20220107/63a49465fff4d.jpg" alt="짜맞춤 히노끼욕조" className="w-full h-72 md:h-full object-cover order-1 md:order-2" />
+          <InlineEditImage
+            contentKey="img_joint_production"
+            src={gc("img_joint_production", "https://cdn.imweb.me/thumbnail/20220107/63a49465fff4d.jpg")}
+            alt="짜맞춤 히노끼욕조"
+            containerClassName="w-full h-72 md:h-full order-1 md:order-2"
+            imgClassName="w-full h-full object-cover"
+          />
         </div>
       </div>
 
