@@ -1,15 +1,20 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AquaDeco Business Website API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Admin authentication
+  - name: content
+    description: Site content management
+  - name: inquiry
+    description: Quote inquiries
 paths:
   /healthz:
     get:
@@ -24,6 +29,240 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: adminLogin
+      tags: [auth]
+      summary: Admin login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: adminLogout
+      tags: [auth]
+      summary: Admin logout
+      responses:
+        "200":
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getAdminMe
+      tags: [auth]
+      summary: Get current admin session
+      responses:
+        "200":
+          description: Current admin session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminSession"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /content:
+    get:
+      operationId: getSiteContent
+      tags: [content]
+      summary: Get all site content
+      responses:
+        "200":
+          description: All site content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteContent"
+
+  /content/{key}:
+    put:
+      operationId: updateContentItem
+      tags: [content]
+      summary: Update a content item
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateContentItemBody"
+      responses:
+        "200":
+          description: Content updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContentItem"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /inquiries:
+    post:
+      operationId: createInquiry
+      tags: [inquiry]
+      summary: Submit a quote inquiry
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInquiryBody"
+      responses:
+        "201":
+          description: Inquiry submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inquiry"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      operationId: listInquiries
+      tags: [inquiry]
+      summary: List all inquiries (admin only)
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, reviewed, completed]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of inquiries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InquiryList"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /inquiries/{id}:
+    get:
+      operationId: getInquiry
+      tags: [inquiry]
+      summary: Get a specific inquiry (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Inquiry details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inquiry"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateInquiryStatus
+      tags: [inquiry]
+      summary: Update inquiry status (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInquiryStatusBody"
+      responses:
+        "200":
+          description: Inquiry updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inquiry"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /inquiries/stats:
+    get:
+      operationId: getInquiryStats
+      tags: [inquiry]
+      summary: Get inquiry statistics (admin only)
+      responses:
+        "200":
+          description: Inquiry stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InquiryStats"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +273,196 @@ components:
       required:
         - status
 
+    LoginRequest:
+      type: object
+      properties:
+        password:
+          type: string
+      required:
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    AdminSession:
+      type: object
+      properties:
+        isAdmin:
+          type: boolean
+      required:
+        - isAdmin
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+        - message
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+        - message
+
+    ContentItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        key:
+          type: string
+        value:
+          type: string
+        type:
+          type: string
+          enum: [text, image, html]
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - key
+        - value
+        - type
+        - updatedAt
+
+    SiteContent:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContentItem"
+      required:
+        - items
+
+    UpdateContentItemBody:
+      type: object
+      properties:
+        value:
+          type: string
+      required:
+        - value
+
+    Inquiry:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        inquiryType:
+          type: string
+        spaceType:
+          type: string
+        area:
+          type: string
+        budget:
+          type: string
+        message:
+          type: string
+        status:
+          type: string
+          enum: [pending, reviewed, completed]
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - phone
+        - inquiryType
+        - spaceType
+        - message
+        - status
+        - createdAt
+
+    CreateInquiryBody:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+        inquiryType:
+          type: string
+        spaceType:
+          type: string
+        area:
+          type: string
+        budget:
+          type: string
+        message:
+          type: string
+      required:
+        - name
+        - phone
+        - inquiryType
+        - spaceType
+        - message
+
+    UpdateInquiryStatusBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, reviewed, completed]
+      required:
+        - status
+
+    InquiryList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Inquiry"
+        total:
+          type: integer
+      required:
+        - items
+        - total
+
+    InquiryStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        pending:
+          type: integer
+        reviewed:
+          type: integer
+        completed:
+          type: integer
+        recentCount:
+          type: integer
+      required:
+        - total
+        - pending
+        - reviewed
+        - completed
+        - recentCount

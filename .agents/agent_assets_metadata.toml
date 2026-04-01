@@ -1,0 +1,44 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "Ne39ks32QD_MMBrWcS7xE"
+uri = "file://artifacts/aquadeco/public/images/hero.png"
+type = "image"
+title = "Luxury living room aquarium"
+
+[[generated]]
+id = "Bzt1YLCktnD5bKV5OEZTP"
+uri = "file://artifacts/aquadeco/public/images/residential.png"
+type = "image"
+title = "Bedroom with planted aquascape"
+
+[[generated]]
+id = "j6u4Zh4tQdf6JN6Kt-xBs"
+uri = "file://artifacts/aquadeco/public/images/commercial.png"
+type = "image"
+title = "Office lobby marine aquarium"
+
+[[generated]]
+id = "Aq2XS1xVVl6Rf8BZCPCoe"
+uri = "file://artifacts/aquadeco/public/images/maintenance.png"
+type = "image"
+title = "Pristine clear saltwater aquarium"
+
+[[generated]]
+id = "BhFOg3xj_EEggXV1A1Q3U"
+uri = "file://artifacts/aquadeco/public/images/portfolio-1.png"
+type = "image"
+title = "Restaurant cylindrical aquarium"
+
+[[generated]]
+id = "PdDx1TDo2QNtRwhZPD3NF"
+uri = "file://artifacts/aquadeco/public/images/portfolio-2.png"
+type = "image"
+title = "Luxury bathroom wall aquarium"
+
+[[generated]]
+id = "zgZu7H_E4UbYdCUWnpFrH"
+uri = "file://artifacts/aquadeco/public/images/portfolio-3.png"
+type = "image"
+title = "Boardroom integrated aquascape"
