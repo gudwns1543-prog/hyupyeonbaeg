@@ -131,14 +131,14 @@ function Location() {
                 <MapPin className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-foreground">주소</p>
-                  <p className="text-sm text-muted-foreground">주소를 입력해주세요</p>
+                  <p className="text-sm text-muted-foreground">경기도 안산시 상록구 한양대학로 55, 창업보육센터 417호</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-primary shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-foreground">전화</p>
-                  <a href="tel:010-0000-0000" className="text-sm text-primary">010-0000-0000</a>
+                  <a href="tel:010-5918-7778" className="text-sm text-primary">010-5918-7778</a>
                 </div>
               </div>
               <div className="flex items-center gap-3">

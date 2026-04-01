@@ -29,7 +29,7 @@ export default function FloatingContact() {
 
       {/* Phone Call */}
       <a
-        href="tel:010-0000-0000"
+        href="tel:010-5918-7778"
         className="w-14 h-14 bg-primary rounded-full flex items-center justify-center text-white shadow-lg hover:-translate-y-1 transition-transform"
         aria-label="전화 상담 (Phone Call)"
         title="전화 상담"

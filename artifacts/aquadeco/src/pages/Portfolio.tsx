@@ -207,6 +207,9 @@ export default function Portfolio() {
 
   const { items, loading, refetch } = usePortfolioItems();
   const [activeKey, setActiveKey] = useState(params.category || "all");
+  useEffect(() => {
+    setActiveKey(params.category || "all");
+  }, [params.category]);
 
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);

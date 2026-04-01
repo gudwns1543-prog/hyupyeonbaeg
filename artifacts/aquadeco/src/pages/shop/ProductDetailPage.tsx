@@ -151,7 +151,7 @@ export default function ProductDetailPage() {
                       </Button>
                     </Link>
                   )}
-                  <a href="tel:010-0000-0000" className="w-full">
+                  <a href="tel:010-5918-7778" className="w-full">
                     <Button size="lg" variant="outline" className="w-full">
                       <Phone className="w-5 h-5 mr-2" />
                       전화 상담

@@ -43,16 +43,22 @@ export default function Footer() {
           <div>
             <h4 className="font-semibold text-base mb-5">고객센터</h4>
             <ul className="flex flex-col gap-3 text-sm text-primary-foreground/70">
-              <li><strong className="text-primary-foreground">전화:</strong> 010-0000-0000</li>
+              <li><strong className="text-primary-foreground">휴대폰:</strong> 010-5918-7778</li>
+              <li><strong className="text-primary-foreground">유선/팩스:</strong> 031-501-3069</li>
               <li><strong className="text-primary-foreground">이메일:</strong> info@hyupyeonbaek.kr</li>
               <li><strong className="text-primary-foreground">영업시간:</strong> 평일 09:00 - 18:00</li>
-              <li><strong className="text-primary-foreground">토요일:</strong> 09:00 - 14:00</li>
             </ul>
           </div>
         </div>
 
         <div className="border-t border-primary-foreground/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-primary-foreground/50">
-          <p>&copy; {new Date().getFullYear()} 휴편백. All rights reserved.</p>
+          <div className="flex flex-wrap gap-x-4 gap-y-1">
+            <p>&copy; {new Date().getFullYear()} 휴편백. All rights reserved.</p>
+            <span>대표: 박형준</span>
+            <span>사업자등록번호: 562-49-00093</span>
+            <span>통신판매신고번호: 2020-화성세살-0070</span>
+            <span>사업장: 경기도 화성시 수노을1로 191</span>
+          </div>
           <div className="flex gap-4">
             <Link href="/admin/login"><span className="hover:text-white transition-colors cursor-pointer">관리자 로그인</span></Link>
             <span>이용약관</span>

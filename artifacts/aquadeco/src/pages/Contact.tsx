@@ -1,4 +1,4 @@
-import { Mail, MapPin, Phone, Clock } from "lucide-react";
+import { Mail, MapPin, Phone, Clock, Printer, Building2 } from "lucide-react";
 import { Link } from "wouter";
 
 export default function Contact() {
@@ -24,9 +24,21 @@ export default function Contact() {
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-xs text-muted-foreground mb-1 uppercase tracking-wide">전화번호</h3>
-                    <a href="tel:010-0000-0000" className="text-lg font-bold text-foreground hover:text-primary">
-                      010-0000-0000
+                    <h3 className="font-semibold text-xs text-muted-foreground mb-1 uppercase tracking-wide">휴대폰</h3>
+                    <a href="tel:010-5918-7778" className="text-lg font-bold text-foreground hover:text-primary">
+                      010-5918-7778
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary/10 p-3 rounded-full text-primary shrink-0">
+                    <Printer className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-xs text-muted-foreground mb-1 uppercase tracking-wide">유선 / 팩스</h3>
+                    <a href="tel:031-501-3069" className="text-lg font-bold text-foreground hover:text-primary">
+                      031-501-3069
                     </a>
                   </div>
                 </div>
@@ -52,31 +64,60 @@ export default function Contact() {
                     <p className="text-xs text-muted-foreground mt-1">일요일 / 공휴일 휴무</p>
                   </div>
                 </div>
+              </div>
+            </div>
 
+            {/* 주소 정보 */}
+            <div className="md:col-span-3 p-10">
+              <h2 className="text-2xl font-bold text-foreground mb-8">사업장 안내</h2>
+              <div className="space-y-6">
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary/10 p-3 rounded-full text-primary shrink-0">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-foreground mb-0.5">본사 사무실</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      경기도 안산시 상록구 한양대학로 55<br />
+                      창업보육센터 417호 사무동
+                    </p>
+                  </div>
+                </div>
                 <div className="flex items-start gap-4">
                   <div className="bg-primary/10 p-3 rounded-full text-primary shrink-0">
                     <MapPin className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-xs text-muted-foreground mb-1 uppercase tracking-wide">주소</h3>
-                    <p className="text-sm font-medium text-foreground leading-relaxed">
-                      주소를 입력해주세요
+                    <h3 className="font-semibold text-sm text-foreground mb-0.5">본사 창고동</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      경기도 안산시 단원구 성곡로 176<br />
+                      타원타크라 1차 516호 창고동
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="bg-primary/10 p-3 rounded-full text-primary shrink-0">
+                    <MapPin className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-foreground mb-0.5">본사 생산동</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      경기도 김포시 양촌읍 누산리 211, 공장동
                     </p>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* 지도 자리 */}
-            <div className="md:col-span-3 min-h-[350px] bg-stone-100 relative">
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-stone-400 p-8 text-center">
-                <MapPin className="w-12 h-12 mb-4 text-stone-300" />
-                <h3 className="text-lg font-bold mb-2 text-stone-500">지도 영역</h3>
-                <p className="text-sm text-stone-400">네이버 지도 또는 카카오 맵이 연동됩니다.</p>
-                <div className="mt-6 bg-white p-4 rounded-xl shadow-sm border border-stone-200 flex items-center gap-3">
-                  <div className="w-3 h-3 rounded-full bg-primary" />
-                  <span className="font-semibold text-stone-700 text-sm">휴편백</span>
-                </div>
+              {/* 사업자 정보 */}
+              <div className="mt-10 pt-8 border-t border-stone-100">
+                <h3 className="text-sm font-bold text-foreground mb-4">사업자 정보</h3>
+                <ul className="space-y-1.5 text-xs text-muted-foreground">
+                  <li><span className="font-medium text-stone-600">상호:</span> 휴편백</li>
+                  <li><span className="font-medium text-stone-600">대표자:</span> 박형준</li>
+                  <li><span className="font-medium text-stone-600">사업자등록번호:</span> 562-49-00093</li>
+                  <li><span className="font-medium text-stone-600">사업장 주소:</span> 경기도 화성시 수노을1로 191</li>
+                  <li><span className="font-medium text-stone-600">통신판매신고번호:</span> 2020-화성세살-0070</li>
+                </ul>
               </div>
             </div>
           </div>

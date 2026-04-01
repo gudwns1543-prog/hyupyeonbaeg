@@ -238,11 +238,11 @@ export default function Navbar() {
           {/* Phone + Mobile Toggle */}
           <div className="flex items-center gap-3">
             <a
-              href="tel:010-0000-0000"
+              href="tel:010-5918-7778"
               className="hidden xl:flex items-center gap-1.5 text-sm font-medium text-stone-700 hover:text-primary transition-colors"
             >
               <Phone className="w-4 h-4 text-primary" />
-              <span>010-0000-0000</span>
+              <span>010-5918-7778</span>
             </a>
             <button
               className="lg:hidden p-2 rounded-md text-stone-700 hover:text-primary transition-colors"
@@ -334,9 +334,9 @@ export default function Navbar() {
             );
           })}
           <div className="pt-3 pb-4 border-t border-stone-100 mt-2">
-            <a href="tel:010-0000-0000" className="flex items-center gap-2 py-2 text-sm text-stone-700">
+            <a href="tel:010-5918-7778" className="flex items-center gap-2 py-2 text-sm text-stone-700">
               <Phone className="w-4 h-4 text-primary" />
-              <span>010-0000-0000</span>
+              <span>010-5918-7778</span>
             </a>
           </div>
         </div>

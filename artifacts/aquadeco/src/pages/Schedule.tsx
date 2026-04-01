@@ -79,7 +79,7 @@ export default function Schedule() {
             원하시는 시공 시기를 알려주시면 일정을 조율해 드립니다.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="tel:010-0000-0000">
+            <a href="tel:010-5918-7778">
               <Button variant="outline" size="lg">
                 <Phone className="w-4 h-4 mr-2" />
                 전화 상담
