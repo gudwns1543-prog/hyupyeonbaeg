@@ -9,14 +9,15 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle } from "lucide-react";
+import { useState } from "react";
 
 const inquirySchema = z.object({
   name: z.string().min(2, "이름/상호명을 입력해주세요."),
   phone: z.string().min(9, "연락처를 입력해주세요."),
   email: z.string().email("올바른 이메일 주소를 입력해주세요.").optional().or(z.literal("")),
   inquiryType: z.string().min(1, "문의 유형을 선택해주세요."),
-  spaceType: z.string().min(1, "공간 유형을 선택해주세요."),
+  spaceType: z.string().min(1, "욕실 유형을 선택해주세요."),
   area: z.string().optional(),
   budget: z.string().optional(),
   message: z.string().min(10, "문의 내용을 10자 이상 자세히 입력해주세요.")
@@ -27,6 +28,7 @@ type InquiryFormValues = z.infer<typeof inquirySchema>;
 export default function Inquiry() {
   const { toast } = useToast();
   const createInquiry = useCreateInquiry();
+  const [submitted, setSubmitted] = useState(false);
 
   const form = useForm<InquiryFormValues>({
     resolver: zodResolver(inquirySchema),
@@ -45,8 +47,9 @@ export default function Inquiry() {
   function onSubmit(data: InquiryFormValues) {
     createInquiry.mutate({ data }, {
       onSuccess: () => {
+        setSubmitted(true);
         toast({
-          title: "문의가 접수되었습니다",
+          title: "견적 문의가 접수되었습니다",
           description: "담당자가 확인 후 빠른 시일 내에 연락드리겠습니다.",
         });
         form.reset();
@@ -61,21 +64,37 @@ export default function Inquiry() {
     });
   }
 
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center p-8">
+        <div className="text-center max-w-md">
+          <CheckCircle className="w-20 h-20 text-primary mx-auto mb-6" />
+          <h2 className="text-3xl font-bold text-foreground mb-4">문의 접수 완료</h2>
+          <p className="text-muted-foreground mb-8 leading-relaxed">
+            견적 문의가 성공적으로 접수되었습니다.<br />
+            담당자 확인 후 입력하신 연락처로 연락드리겠습니다.
+          </p>
+          <Button onClick={() => setSubmitted(false)} data-testid="btn-new-inquiry">새 문의 작성하기</Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-muted/30 py-16">
+    <div className="min-h-screen bg-stone-50 py-16">
       <div className="container mx-auto px-4 md:px-8">
         <div className="max-w-3xl mx-auto">
-          
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold mb-4 text-foreground tracking-tight">견적 문의</h1>
-            <p className="text-lg text-muted-foreground">
-              원하시는 수족관의 컨셉과 대략적인 예산을 남겨주시면, 담당자가 확인 후 상세한 맞춤 상담을 도와드립니다.
+            <p className="text-muted-foreground text-base leading-relaxed">
+              원하시는 히노끼욕조의 종류와 욕실 환경을 알려주시면,<br className="hidden sm:block" />
+              담당자가 확인 후 맞춤 견적을 안내해 드립니다.
             </p>
           </div>
 
-          <Card className="border-border/60 shadow-lg">
-            <CardHeader className="bg-primary/5 border-b border-border/40 pb-6">
-              <CardTitle className="text-xl">문의 양식 작성</CardTitle>
+          <Card className="border-stone-200 shadow-lg">
+            <CardHeader className="bg-primary/5 border-b border-stone-200 pb-6">
+              <CardTitle className="text-xl text-foreground">문의 양식 작성</CardTitle>
               <CardDescription>
                 * 표시된 항목은 필수 입력 사항입니다.
               </CardDescription>
@@ -83,7 +102,7 @@ export default function Inquiry() {
             <CardContent className="pt-8">
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-                  
+
                   <div className="grid md:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
@@ -92,13 +111,13 @@ export default function Inquiry() {
                         <FormItem>
                           <FormLabel>이름 / 상호명 *</FormLabel>
                           <FormControl>
-                            <Input placeholder="홍길동 또는 (주)아쿠아" {...field} data-testid="input-name" />
+                            <Input placeholder="홍길동 또는 (주)휴편백" {...field} data-testid="input-name" />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={form.control}
                       name="phone"
@@ -119,7 +138,7 @@ export default function Inquiry() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>이메일</FormLabel>
+                        <FormLabel>이메일 (선택)</FormLabel>
                         <FormControl>
                           <Input placeholder="example@email.com" {...field} data-testid="input-email" />
                         </FormControl>
@@ -134,18 +153,19 @@ export default function Inquiry() {
                       name="inquiryType"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>문의 유형 *</FormLabel>
+                          <FormLabel>문의 제품 *</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-type">
-                                <SelectValue placeholder="선택해주세요" />
+                                <SelectValue placeholder="제품을 선택해주세요" />
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="신규설치">신규 설치/시공</SelectItem>
-                              <SelectItem value="리모델링">기존 수조 리모델링</SelectItem>
-                              <SelectItem value="유지보수">정기 유지보수</SelectItem>
-                              <SelectItem value="기타">기타 문의</SelectItem>
+                              <SelectItem value="반신욕조">히노끼 반신욕조</SelectItem>
+                              <SelectItem value="전신욕조">히노끼 전신욕조</SelectItem>
+                              <SelectItem value="주문제작">주문 제작형 욕조</SelectItem>
+                              <SelectItem value="악세사리">악세사리 (데크수전, 월풀 등)</SelectItem>
+                              <SelectItem value="기타">기타 / 상담 후 결정</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -158,7 +178,7 @@ export default function Inquiry() {
                       name="spaceType"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>공간 유형 *</FormLabel>
+                          <FormLabel>욕실 유형 *</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-space">
@@ -166,11 +186,12 @@ export default function Inquiry() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="주거공간">주거 공간 (아파트, 빌라, 단독주택)</SelectItem>
-                              <SelectItem value="상업공간">상업 공간 (카페, 식당, 매장)</SelectItem>
-                              <SelectItem value="오피스">오피스/사무실</SelectItem>
-                              <SelectItem value="의료시설">의료 시설 (병원, 한의원)</SelectItem>
-                              <SelectItem value="기타">기타 공간</SelectItem>
+                              <SelectItem value="아파트">아파트</SelectItem>
+                              <SelectItem value="단독주택">단독주택 / 전원주택</SelectItem>
+                              <SelectItem value="펜션">펜션 / 숙박업소</SelectItem>
+                              <SelectItem value="호텔스파">호텔 / 스파</SelectItem>
+                              <SelectItem value="상업시설">상업 시설 (찜질방, 목욕탕 등)</SelectItem>
+                              <SelectItem value="기타">기타</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -199,7 +220,7 @@ export default function Inquiry() {
                       name="budget"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>예상 예산 (선택)</FormLabel>
+                          <FormLabel>예산 범위 (선택)</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-budget">
@@ -207,10 +228,10 @@ export default function Inquiry() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              <SelectItem value="300만이하">300만원 이하</SelectItem>
-                              <SelectItem value="300-500만">300만원 ~ 500만원</SelectItem>
-                              <SelectItem value="500-1000만">500만원 ~ 1,000만원</SelectItem>
-                              <SelectItem value="1000만이상">1,000만원 이상</SelectItem>
+                              <SelectItem value="150만이하">150만원 이하</SelectItem>
+                              <SelectItem value="150-200만">150만원 ~ 200만원</SelectItem>
+                              <SelectItem value="200-300만">200만원 ~ 300만원</SelectItem>
+                              <SelectItem value="300만이상">300만원 이상</SelectItem>
                               <SelectItem value="미정">미정 / 상담 후 결정</SelectItem>
                             </SelectContent>
                           </Select>
@@ -227,10 +248,10 @@ export default function Inquiry() {
                       <FormItem>
                         <FormLabel>상세 문의 내용 *</FormLabel>
                         <FormControl>
-                          <Textarea 
-                            placeholder="원하시는 수족관의 크기, 설치될 공간의 형태, 선호하는 어종이나 디자인 컨셉 등을 자유롭게 적어주세요." 
+                          <Textarea
+                            placeholder="원하시는 욕조의 크기, 욕실 공간, 선호하는 나무 등급(유절/무절/마사메), 추가 옵션(월풀 등) 등을 자유롭게 적어주세요."
                             className="min-h-[150px] resize-y"
-                            {...field} 
+                            {...field}
                             data-testid="input-message"
                           />
                         </FormControl>
@@ -239,10 +260,10 @@ export default function Inquiry() {
                     )}
                   />
 
-                  <div className="pt-4 flex justify-end">
-                    <Button 
-                      type="submit" 
-                      size="lg" 
+                  <div className="pt-2 flex justify-end">
+                    <Button
+                      type="submit"
+                      size="lg"
                       className="w-full sm:w-auto px-10 text-base h-14"
                       disabled={createInquiry.isPending}
                       data-testid="btn-submit-inquiry"
@@ -253,7 +274,7 @@ export default function Inquiry() {
                           제출 중...
                         </>
                       ) : (
-                        "문의 접수하기"
+                        "견적 문의 접수하기"
                       )}
                     </Button>
                   </div>

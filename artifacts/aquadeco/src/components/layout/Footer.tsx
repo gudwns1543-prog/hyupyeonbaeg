@@ -7,49 +7,52 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="md:col-span-1">
             <Link href="/">
-              <span className="font-serif text-2xl font-semibold cursor-pointer tracking-tight flex items-center gap-2 mb-6">
-                <div className="w-6 h-6 bg-secondary rounded-tr-lg rounded-bl-lg" />
-                AquaDeco
+              <span className="text-2xl font-bold cursor-pointer tracking-tight flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">휴</span>
+                </div>
+                휴편백
               </span>
             </Link>
             <p className="text-primary-foreground/70 text-sm leading-relaxed max-w-xs">
-              프리미엄 수족관 인테리어 & 맞춤형 설치 전문 기업. 공간에 물의 아름다움과 생명력을 더합니다.
+              히노끼(편백) 욕조 전문 제작&middot;판매&middot;시공 업체.<br />
+              자연의 향기와 건강을 담은 최고급 히노끼 욕조를 경험하세요.
             </p>
           </div>
-          
+
           <div>
-            <h4 className="font-medium text-lg mb-6">바로가기</h4>
+            <h4 className="font-semibold text-base mb-5">바로가기</h4>
             <ul className="flex flex-col gap-3 text-sm text-primary-foreground/70">
-              <li><Link href="/services"><span className="hover:text-white transition-colors cursor-pointer">서비스 소개</span></Link></li>
-              <li><Link href="/portfolio"><span className="hover:text-white transition-colors cursor-pointer">포트폴리오</span></Link></li>
+              <li><Link href="/services"><span className="hover:text-white transition-colors cursor-pointer">사업소개</span></Link></li>
+              <li><Link href="/portfolio"><span className="hover:text-white transition-colors cursor-pointer">시공사례</span></Link></li>
               <li><Link href="/inquiry"><span className="hover:text-white transition-colors cursor-pointer">견적문의</span></Link></li>
               <li><Link href="/contact"><span className="hover:text-white transition-colors cursor-pointer">고객센터</span></Link></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-medium text-lg mb-6">서비스</h4>
+            <h4 className="font-semibold text-base mb-5">제품 카테고리</h4>
             <ul className="flex flex-col gap-3 text-sm text-primary-foreground/70">
-              <li>주거공간 수족관</li>
-              <li>상업공간 수족관</li>
-              <li>맞춤형 아쿠아스케이프</li>
-              <li>정기 유지보수</li>
+              <li>히노끼 반신욕조</li>
+              <li>히노끼 전신욕조</li>
+              <li>주문 제작형 욕조</li>
+              <li>악세사리 (데크수전, 월풀)</li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-medium text-lg mb-6">고객센터</h4>
+            <h4 className="font-semibold text-base mb-5">고객센터</h4>
             <ul className="flex flex-col gap-3 text-sm text-primary-foreground/70">
-              <li><strong>Tel:</strong> 02-1234-5678</li>
-              <li><strong>Email:</strong> contact@aquadeco.co.kr</li>
-              <li><strong>Time:</strong> 평일 09:00 - 18:00</li>
-              <li><strong>Address:</strong> 서울특별시 강남구 테헤란로 123 아쿠아빌딩 1층</li>
+              <li><strong className="text-primary-foreground">전화:</strong> 010-0000-0000</li>
+              <li><strong className="text-primary-foreground">이메일:</strong> info@hyupyeonbaek.kr</li>
+              <li><strong className="text-primary-foreground">영업시간:</strong> 평일 09:00 - 18:00</li>
+              <li><strong className="text-primary-foreground">토요일:</strong> 09:00 - 14:00</li>
             </ul>
           </div>
         </div>
-        
-        <div className="border-t border-primary-foreground/10 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-primary-foreground/50">
-          <p>&copy; {new Date().getFullYear()} AquaDeco. All rights reserved.</p>
+
+        <div className="border-t border-primary-foreground/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-primary-foreground/50">
+          <p>&copy; {new Date().getFullYear()} 휴편백. All rights reserved.</p>
           <div className="flex gap-4">
             <Link href="/admin/login"><span className="hover:text-white transition-colors cursor-pointer">관리자 로그인</span></Link>
             <span>이용약관</span>
