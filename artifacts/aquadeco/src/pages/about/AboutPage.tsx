@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { InlineEditText } from "@/components/InlineEditText";
 import { InlineEditImage } from "@/components/InlineEditImage";
 import { useSiteContent } from "@/hooks/useSiteContent";
+import { SectionWrapper } from "@/components/SectionWrapper";
+import { PageLayoutProvider, SectionRegistryItem } from "@/context/PageLayoutContext";
 
 type Section = "ceo" | "philosophy" | "achievements" | "location";
 
@@ -346,44 +348,73 @@ function Location() {
   );
 }
 
+const ABOUT_REGISTRY: SectionRegistryItem[] = [
+  { key: "about_header", label: "회사소개 헤더", component: () => null },
+  { key: "about_ceo", label: "CEO 인사말", component: CeoGreeting },
+  { key: "about_philosophy", label: "경영이념", component: Philosophy },
+  { key: "about_achievements", label: "주요실적", component: Achievements },
+  { key: "about_location", label: "찾아오시는 길", component: Location },
+];
+const ABOUT_DEFAULT_KEYS = ABOUT_REGISTRY.map((s) => s.key);
+
 export default function AboutPage() {
   const params = useParams<{ section?: string }>();
   const section = (params.section || "ceo") as Section;
 
   return (
-    <div className="min-h-screen pt-[104px]">
-      <div className="bg-primary text-primary-foreground py-16 px-4">
-        <div className="container mx-auto text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">회사소개</h1>
-          <p className="text-primary-foreground/80">휴편백을 소개합니다</p>
+    <PageLayoutProvider pageKey="about" defaultKeys={ABOUT_DEFAULT_KEYS} registry={ABOUT_REGISTRY}>
+      <div className="min-h-screen pt-[104px]">
+        <SectionWrapper sectionKey="about_header" noReorder noAdd noRemove>
+          <div className="bg-primary text-primary-foreground py-16 px-4">
+            <div className="container mx-auto text-center">
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">회사소개</h1>
+              <p className="text-primary-foreground/80">휴편백을 소개합니다</p>
+            </div>
+          </div>
+        </SectionWrapper>
+
+        <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
+          <div className="container mx-auto px-4 flex gap-0 overflow-x-auto">
+            {TABS.map((tab) => (
+              <Link key={tab.key} href={`/about/${tab.key}`}>
+                <button
+                  className={cn(
+                    "px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                    section === tab.key
+                      ? "border-primary text-primary"
+                      : "border-transparent text-stone-600 hover:text-primary"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-16">
+          {section === "ceo" && (
+            <SectionWrapper sectionKey="about_ceo" noReorder noAdd noRemove>
+              <CeoGreeting />
+            </SectionWrapper>
+          )}
+          {section === "philosophy" && (
+            <SectionWrapper sectionKey="about_philosophy" noReorder noAdd noRemove>
+              <Philosophy />
+            </SectionWrapper>
+          )}
+          {section === "achievements" && (
+            <SectionWrapper sectionKey="about_achievements" noReorder noAdd noRemove>
+              <Achievements />
+            </SectionWrapper>
+          )}
+          {section === "location" && (
+            <SectionWrapper sectionKey="about_location" noReorder noAdd noRemove>
+              <Location />
+            </SectionWrapper>
+          )}
         </div>
       </div>
-
-      <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
-        <div className="container mx-auto px-4 flex gap-0 overflow-x-auto">
-          {TABS.map((tab) => (
-            <Link key={tab.key} href={`/about/${tab.key}`}>
-              <button
-                className={cn(
-                  "px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
-                  section === tab.key
-                    ? "border-primary text-primary"
-                    : "border-transparent text-stone-600 hover:text-primary"
-                )}
-              >
-                {tab.label}
-              </button>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-16">
-        {section === "ceo" && <CeoGreeting />}
-        {section === "philosophy" && <Philosophy />}
-        {section === "achievements" && <Achievements />}
-        {section === "location" && <Location />}
-      </div>
-    </div>
+    </PageLayoutProvider>
   );
 }

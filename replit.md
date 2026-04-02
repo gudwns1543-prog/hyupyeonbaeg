@@ -83,6 +83,20 @@ artifacts-monorepo/
 - **Cart system**: React Context + localStorage, cart count badge on navbar
 - **Admin bar**: When logged in, shows a subtle admin mode indicator at the top
 - **Portfolio**: 20 entries with real CDN images from original imweb site
+- **InlineEditText**: Clicking any text in admin mode opens editor with style toolbar (bold, align, size, color)
+- **InlineEditImage**: Clicking any image in admin mode opens image upload/URL modal
+- **iMweb-style Design Mode** (via PageLayoutContext + SectionWrapper):
+  - Each page has `PageLayoutProvider` managing section order, visibility, background
+  - Layout persisted to content API key `page_layout_{pageKey}`
+  - `SectionWrapper` shows green admin toolbar on hover with:
+    - Eye toggle (show/hide section, invisible to public)
+    - Up/Down arrows (reorder sections)
+    - Palette (section background: color presets, hex picker, or image upload)
+    - Plus (add removed sections back from registry)
+    - Trash (remove section from layout)
+  - Home: 6 sections (hero, products, about, why, process, contact) — all with full controls
+  - AboutPage: 5 sections (header + 4 tabs) — show/hide + background only
+  - BusinessPage: 5 sections (header + 4 tabs) — show/hide + background only
 
 ## Products (DB seeded)
 

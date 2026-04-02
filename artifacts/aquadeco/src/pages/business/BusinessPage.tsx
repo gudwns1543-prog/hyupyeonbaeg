@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 import { InlineEditText } from "@/components/InlineEditText";
 import { InlineEditImage } from "@/components/InlineEditImage";
 import { useSiteContent } from "@/hooks/useSiteContent";
+import { SectionWrapper } from "@/components/SectionWrapper";
+import { PageLayoutProvider, SectionRegistryItem } from "@/context/PageLayoutContext";
 
 type Section = "hinoki" | "production" | "care" | "certificate";
 
@@ -331,44 +333,73 @@ function CertificateSection() {
   );
 }
 
+const BUSINESS_REGISTRY: SectionRegistryItem[] = [
+  { key: "biz_header", label: "사업소개 헤더", component: () => null },
+  { key: "biz_hinoki", label: "히노끼란", component: HinokiSection },
+  { key: "biz_production", label: "제작방식", component: ProductionSection },
+  { key: "biz_care", label: "관리방법", component: CareSection },
+  { key: "biz_certificate", label: "원산지증명", component: CertificateSection },
+];
+const BUSINESS_DEFAULT_KEYS = BUSINESS_REGISTRY.map((s) => s.key);
+
 export default function BusinessPage() {
   const params = useParams<{ section?: string }>();
   const section = (params.section || "hinoki") as Section;
 
   return (
-    <div className="min-h-screen pt-[104px]">
-      <div className="bg-primary text-primary-foreground py-16 px-4">
-        <div className="container mx-auto text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">사업소개</h1>
-          <p className="text-primary-foreground/80">히노끼욕조에 대해 알아보세요</p>
+    <PageLayoutProvider pageKey="business" defaultKeys={BUSINESS_DEFAULT_KEYS} registry={BUSINESS_REGISTRY}>
+      <div className="min-h-screen pt-[104px]">
+        <SectionWrapper sectionKey="biz_header" noReorder noAdd noRemove>
+          <div className="bg-primary text-primary-foreground py-16 px-4">
+            <div className="container mx-auto text-center">
+              <h1 className="text-3xl md:text-4xl font-bold mb-2">사업소개</h1>
+              <p className="text-primary-foreground/80">히노끼욕조에 대해 알아보세요</p>
+            </div>
+          </div>
+        </SectionWrapper>
+
+        <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
+          <div className="container mx-auto px-4 flex gap-0 overflow-x-auto">
+            {TABS.map((tab) => (
+              <Link key={tab.key} href={`/business/${tab.key}`}>
+                <button
+                  className={cn(
+                    "px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                    section === tab.key
+                      ? "border-primary text-primary"
+                      : "border-transparent text-stone-600 hover:text-primary"
+                  )}
+                >
+                  {tab.label}
+                </button>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div className="container mx-auto px-4 py-16">
+          {section === "hinoki" && (
+            <SectionWrapper sectionKey="biz_hinoki" noReorder noAdd noRemove>
+              <HinokiSection />
+            </SectionWrapper>
+          )}
+          {section === "production" && (
+            <SectionWrapper sectionKey="biz_production" noReorder noAdd noRemove>
+              <ProductionSection />
+            </SectionWrapper>
+          )}
+          {section === "care" && (
+            <SectionWrapper sectionKey="biz_care" noReorder noAdd noRemove>
+              <CareSection />
+            </SectionWrapper>
+          )}
+          {section === "certificate" && (
+            <SectionWrapper sectionKey="biz_certificate" noReorder noAdd noRemove>
+              <CertificateSection />
+            </SectionWrapper>
+          )}
         </div>
       </div>
-
-      <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
-        <div className="container mx-auto px-4 flex gap-0 overflow-x-auto">
-          {TABS.map((tab) => (
-            <Link key={tab.key} href={`/business/${tab.key}`}>
-              <button
-                className={cn(
-                  "px-6 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
-                  section === tab.key
-                    ? "border-primary text-primary"
-                    : "border-transparent text-stone-600 hover:text-primary"
-                )}
-              >
-                {tab.label}
-              </button>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-16">
-        {section === "hinoki" && <HinokiSection />}
-        {section === "production" && <ProductionSection />}
-        {section === "care" && <CareSection />}
-        {section === "certificate" && <CertificateSection />}
-      </div>
-    </div>
+    </PageLayoutProvider>
   );
 }
