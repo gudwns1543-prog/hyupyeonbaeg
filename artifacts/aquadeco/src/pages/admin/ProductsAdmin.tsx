@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Eye, EyeOff, X, FolderTree, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Plus, Pencil, Trash2, Eye, EyeOff, X, FolderTree, ChevronRight, GripVertical } from "lucide-react";
 import { ImageUploadInput } from "@/components/ui/ImageUploadInput";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
@@ -125,22 +126,31 @@ function AdditionalImagesEditor({ images, onChange }: { images: string[]; onChan
   );
 }
 
-/* ──────────────── Category Manager Component (3-level) ──────────────── */
+/* ──────────────── Category Manager (Drag Tree) ──────────────── */
 function CategoryManager({ categories, onRefresh }: { categories: Category[]; onRefresh: () => void }) {
   const { toast } = useToast();
-  const [selectedParent, setSelectedParent] = useState<string | null>(null);
-  const [selectedMid, setSelectedMid] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editCat, setEditCat] = useState<Category | null>(null);
   const [form, setForm] = useState({ slug: "", name: "", parentSlug: "" });
   const [deleteConfirm, setDeleteConfirm] = useState<Category | null>(null);
   const [saving, setSaving] = useState(false);
+  const [draggingSlug, setDraggingSlug] = useState<string | null>(null);
+  const [dropInfo, setDropInfo] = useState<{ slug: string; pos: "before" | "after" | "in" } | null>(null);
 
-  const topLevel = categories.filter(c => !c.parentSlug).sort((a, b) => a.sortOrder - b.sortOrder);
   const subOf = (slug: string) => categories.filter(c => c.parentSlug === slug).sort((a, b) => a.sortOrder - b.sortOrder);
-
-  // resolve display label for the parentSlug (handles multi-level)
   const labelFor = (slug: string) => categories.find(c => c.slug === slug)?.name || slug;
+
+  const flatTree = useMemo(() => {
+    const result: Array<Category & { depth: number }> = [];
+    const addLevel = (parentSlug: string | null, depth: number) => {
+      categories
+        .filter(c => c.parentSlug === parentSlug)
+        .sort((a, b) => a.sortOrder - b.sortOrder)
+        .forEach(c => { result.push({ ...c, depth }); addLevel(c.slug, depth + 1); });
+    };
+    addLevel(null, 0);
+    return result;
+  }, [categories]);
 
   const openAddTop = () => { setEditCat(null); setForm({ slug: "", name: "", parentSlug: "" }); setShowModal(true); };
   const openAddSub = (parentSlug: string) => { setEditCat(null); setForm({ slug: "", name: "", parentSlug }); setShowModal(true); };
@@ -184,104 +194,134 @@ function CategoryManager({ categories, onRefresh }: { categories: Category[]; on
       if (!res.ok) throw new Error();
       toast({ title: "카테고리 삭제 완료" });
       setDeleteConfirm(null);
-      if (selectedParent === cat.slug) { setSelectedParent(null); setSelectedMid(null); }
-      if (selectedMid === cat.slug) setSelectedMid(null);
       onRefresh();
     } catch { toast({ title: "삭제 실패", variant: "destructive" }); }
   };
 
-  const CatRow = ({ cat, level, active, onClick }: { cat: Category; level: "top" | "mid" | "leaf"; active?: boolean; onClick?: () => void }) => (
-    <div
-      className={cn(
-        "flex items-center gap-2 px-4 py-3 transition-colors",
-        onClick ? "cursor-pointer hover:bg-stone-50" : "hover:bg-stone-50",
-        active ? "bg-primary/5 border-l-4 border-l-primary" : ""
-      )}
-      onClick={onClick}
-    >
-      {level === "top" && <FolderTree className="w-4 h-4 text-primary/60 shrink-0" />}
-      {level === "mid" && <div className="w-2 h-2 rounded-full bg-stone-300 shrink-0 ml-1" />}
-      {level === "leaf" && <div className="w-1.5 h-1.5 rounded-full bg-primary/30 shrink-0 ml-3" />}
-      <div className="flex-1 min-w-0">
-        <span className="text-sm font-medium">{cat.name}</span>
-        {level !== "leaf" && <span className="ml-2 text-xs text-stone-400">({subOf(cat.slug).length})</span>}
-        {level === "leaf" && <span className="ml-2 text-xs text-stone-400 font-mono">{getSubValue(cat)}</span>}
-      </div>
-      <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
-        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(cat)}><Pencil className="w-3 h-3" /></Button>
-        <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteConfirm(cat)}><Trash2 className="w-3 h-3" /></Button>
-      </div>
-      {onClick && <ChevronRight className={cn("w-4 h-4 text-stone-300 transition-transform shrink-0", active ? "rotate-90" : "")} />}
-    </div>
-  );
+  const handleDrop = async (dSlug: string, info: { slug: string; pos: "before" | "after" | "in" }) => {
+    if (dSlug === info.slug) return;
+    const dragging = categories.find(c => c.slug === dSlug);
+    const target = categories.find(c => c.slug === info.slug);
+    if (!dragging || !target) return;
 
-  const ColHeader = ({ title, onAdd, addLabel }: { title: string; onAdd?: () => void; addLabel?: string }) => (
-    <div className="bg-stone-50 border-b border-stone-200 px-4 py-2.5 flex items-center justify-between">
-      <span className="text-sm font-semibold text-stone-700">{title}</span>
-      {onAdd && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAdd}><Plus className="w-3 h-3" />{addLabel}</Button>}
-    </div>
-  );
+    // Prevent circular: check target is not descendant of dragging
+    let cur: Category | undefined = target;
+    while (cur?.parentSlug) {
+      if (cur.parentSlug === dSlug) { toast({ title: "상위 카테고리를 하위로 이동할 수 없습니다", variant: "destructive" }); return; }
+      cur = categories.find(c => c.slug === cur!.parentSlug);
+    }
+
+    let newParentSlug: string | null;
+    let siblings: Category[];
+    let insertIdx: number;
+
+    if (info.pos === "in") {
+      newParentSlug = target.slug;
+      siblings = categories.filter(c => c.parentSlug === target.slug && c.slug !== dSlug).sort((a, b) => a.sortOrder - b.sortOrder);
+      insertIdx = siblings.length;
+    } else {
+      newParentSlug = target.parentSlug;
+      siblings = categories.filter(c => c.parentSlug === target.parentSlug && c.slug !== dSlug).sort((a, b) => a.sortOrder - b.sortOrder);
+      const tIdx = siblings.findIndex(c => c.slug === target.slug);
+      insertIdx = info.pos === "before" ? tIdx : tIdx + 1;
+    }
+
+    siblings.splice(insertIdx, 0, dragging);
+    const promises: Promise<unknown>[] = [];
+
+    if (dragging.parentSlug !== newParentSlug) {
+      promises.push(fetch(`${API_BASE}/api/categories/${dragging.id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+        body: JSON.stringify({ parentSlug: newParentSlug }),
+      }));
+    }
+    siblings.forEach((c, i) => {
+      if (c.sortOrder !== i + 1 || c.slug === dSlug) {
+        promises.push(fetch(`${API_BASE}/api/categories/${c.id}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
+          body: JSON.stringify({ sortOrder: i + 1 }),
+        }));
+      }
+    });
+
+    try {
+      await Promise.all(promises);
+      onRefresh();
+    } catch {
+      toast({ title: "이동 실패", variant: "destructive" });
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">카테고리 관리</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">대분류 → 중분류 → 소분류 3단계 구조로 관리합니다</p>
+          <p className="text-sm text-muted-foreground mt-0.5">드래그로 순서 변경 · 다른 항목 위에 놓으면 하위로 이동합니다</p>
         </div>
         <Button onClick={openAddTop} className="gap-2" size="sm"><Plus className="w-4 h-4" /> 대분류 추가</Button>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        {/* 대분류 */}
-        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          <ColHeader title="대분류" />
-          <div className="divide-y divide-stone-100">
-            {topLevel.length === 0 && <div className="text-center py-10 text-muted-foreground text-sm">카테고리가 없습니다</div>}
-            {topLevel.map(cat => (
-              <CatRow
-                key={cat.id} cat={cat} level="top"
-                active={selectedParent === cat.slug}
-                onClick={() => { setSelectedParent(cat.slug === selectedParent ? null : cat.slug); setSelectedMid(null); }}
-              />
-            ))}
-          </div>
+      <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+        <div className="bg-stone-50 border-b border-stone-200 px-4 py-2.5 flex items-center gap-2 text-xs text-stone-500">
+          <GripVertical className="w-3.5 h-3.5" />
+          드래그로 순서·계층 변경 가능 · 행 위에 놓으면 하위 카테고리로 이동
         </div>
 
-        {/* 중분류 */}
-        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          <ColHeader
-            title={selectedParent ? `중분류 — ${labelFor(selectedParent)}` : "중분류"}
-            onAdd={selectedParent ? () => openAddSub(selectedParent) : undefined}
-            addLabel="중분류 추가"
-          />
-          <div className="divide-y divide-stone-100">
-            {!selectedParent && <div className="text-center py-10 text-muted-foreground text-sm">← 대분류를 선택하세요</div>}
-            {selectedParent && subOf(selectedParent).length === 0 && <div className="text-center py-10 text-muted-foreground text-sm">중분류가 없습니다</div>}
-            {selectedParent && subOf(selectedParent).map(cat => (
-              <CatRow
-                key={cat.id} cat={cat} level="mid"
-                active={selectedMid === cat.slug}
-                onClick={() => setSelectedMid(cat.slug === selectedMid ? null : cat.slug)}
-              />
-            ))}
-          </div>
-        </div>
+        {flatTree.length === 0 && (
+          <div className="text-center py-16 text-muted-foreground text-sm">카테고리가 없습니다. 대분류를 추가해 보세요.</div>
+        )}
 
-        {/* 소분류 */}
-        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          <ColHeader
-            title={selectedMid ? `소분류 — ${labelFor(selectedMid)}` : "소분류"}
-            onAdd={selectedMid ? () => openAddSub(selectedMid) : undefined}
-            addLabel="소분류 추가"
-          />
-          <div className="divide-y divide-stone-100">
-            {!selectedMid && <div className="text-center py-10 text-muted-foreground text-sm">← 중분류를 선택하세요</div>}
-            {selectedMid && subOf(selectedMid).length === 0 && <div className="text-center py-10 text-muted-foreground text-sm">소분류가 없습니다</div>}
-            {selectedMid && subOf(selectedMid).map(cat => (
-              <CatRow key={cat.id} cat={cat} level="leaf" />
-            ))}
-          </div>
+        <div className="divide-y divide-stone-100">
+          {flatTree.map(cat => (
+            <div key={cat.id} className="relative">
+              {dropInfo?.slug === cat.slug && dropInfo.pos === "before" && (
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary z-10 pointer-events-none" style={{ marginLeft: cat.depth * 24 + 16 }} />
+              )}
+              <div
+                draggable
+                onDragStart={() => setDraggingSlug(cat.slug)}
+                onDragEnd={() => { setDraggingSlug(null); setDropInfo(null); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  const r = e.currentTarget.getBoundingClientRect();
+                  const ratio = (e.clientY - r.top) / r.height;
+                  setDropInfo({ slug: cat.slug, pos: ratio < 0.3 ? "before" : ratio > 0.7 ? "after" : "in" });
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (draggingSlug && dropInfo) handleDrop(draggingSlug, dropInfo);
+                  setDraggingSlug(null); setDropInfo(null);
+                }}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 transition-colors group",
+                  draggingSlug === cat.slug ? "opacity-40" : "",
+                  dropInfo?.slug === cat.slug && dropInfo.pos === "in"
+                    ? "bg-primary/10"
+                    : draggingSlug !== cat.slug ? "hover:bg-stone-50" : "",
+                )}
+                style={{ paddingLeft: cat.depth * 24 + 16 + "px" }}
+              >
+                <GripVertical className="w-4 h-4 text-stone-300 cursor-grab shrink-0" />
+                {cat.depth === 0 && <FolderTree className="w-4 h-4 text-primary/50 shrink-0" />}
+                {cat.depth === 1 && <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />}
+                {cat.depth >= 2 && <div className="w-1.5 h-1.5 rounded-full bg-primary/30 shrink-0" />}
+                <div className="flex-1 min-w-0">
+                  <span className={cn("text-sm", cat.depth === 0 ? "font-semibold" : "font-medium")}>{cat.name}</span>
+                  <span className="ml-2 text-xs text-stone-400 font-mono">{cat.slug}</span>
+                  {subOf(cat.slug).length > 0 && <span className="ml-1.5 text-xs text-stone-400">({subOf(cat.slug).length}개 하위)</span>}
+                </div>
+                <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-stone-500" title="하위 추가" onClick={() => openAddSub(cat.slug)}><Plus className="w-3 h-3" /></Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(cat)}><Pencil className="w-3 h-3" /></Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteConfirm(cat)}><Trash2 className="w-3 h-3" /></Button>
+                </div>
+              </div>
+              {dropInfo?.slug === cat.slug && dropInfo.pos === "after" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary z-10 pointer-events-none" style={{ marginLeft: cat.depth * 24 + 16 }} />
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
@@ -290,15 +330,9 @@ function CategoryManager({ categories, onRefresh }: { categories: Category[]; on
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>
-              {editCat
-                ? "카테고리 수정"
-                : form.parentSlug
-                  ? (() => {
-                      const parent = categories.find(c => c.slug === form.parentSlug);
-                      const isLeaf = !!parent?.parentSlug;
-                      return `${isLeaf ? "소분류" : "중분류"} 추가 — ${parent?.name || form.parentSlug}`;
-                    })()
-                  : "대분류 추가"}
+              {editCat ? "카테고리 수정"
+                : form.parentSlug ? `하위 카테고리 추가 — ${labelFor(form.parentSlug)}`
+                : "대분류 추가"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
@@ -318,13 +352,9 @@ function CategoryManager({ categories, onRefresh }: { categories: Category[]; on
             )}
             <div>
               <Label>카테고리명</Label>
-              <Input
-                className="mt-1"
-                placeholder="예: 반신욕조"
-                value={form.name}
+              <Input className="mt-1" placeholder="예: 반신욕조" value={form.name}
                 onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
-                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
-              />
+                onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }} />
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">

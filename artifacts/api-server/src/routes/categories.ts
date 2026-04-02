@@ -80,10 +80,11 @@ router.patch("/:id", async (req, res) => {
       res.status(400).json({ error: "BadRequest", message: "잘못된 ID" });
       return;
     }
-    const { name, sortOrder } = req.body;
+    const { name, sortOrder, parentSlug } = req.body;
     const updates: Record<string, unknown> = {};
     if (name !== undefined) updates.name = name;
     if (sortOrder !== undefined) updates.sortOrder = Number(sortOrder);
+    if ("parentSlug" in req.body) updates.parentSlug = parentSlug === null || parentSlug === "" ? null : String(parentSlug);
 
     const [updated] = await db
       .update(productCategoriesTable)

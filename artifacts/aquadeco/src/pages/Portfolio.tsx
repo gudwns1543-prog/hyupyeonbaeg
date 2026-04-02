@@ -7,7 +7,7 @@ import { useGetAdminMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import {
-  Pencil, Trash2, Plus, X, Check, Loader2, Settings, ChevronRight, ChevronDown,
+  Pencil, Trash2, Plus, X, Check, Loader2, Settings, ChevronRight, ChevronDown, GripVertical,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploadInput } from "@/components/ui/ImageUploadInput";
@@ -181,6 +181,42 @@ function EditModal({
 
 // ─── Category Management Modal ────────────────────────────────────────────────
 
+function applyPortfolioDrop(
+  items: CategoryItem[],
+  draggingKey: string,
+  targetKey: string,
+  pos: "before" | "after" | "in",
+): CategoryItem[] {
+  if (draggingKey === targetKey) return items;
+  const dragging = items.find((i) => i.key === draggingKey);
+  const target = items.find((i) => i.key === targetKey);
+  if (!dragging || !target) return items;
+  let cur: CategoryItem | undefined = target;
+  while (cur?.parent) {
+    if (cur.parent === draggingKey) return items;
+    cur = items.find((i) => i.key === cur!.parent);
+  }
+  const rest = items.filter((i) => i.key !== draggingKey);
+  if (pos === "in") {
+    const updated = { ...dragging, parent: targetKey };
+    const tIdx = rest.findIndex((i) => i.key === targetKey);
+    let ins = tIdx + 1;
+    while (ins < rest.length) {
+      let p = rest[ins].parent;
+      let desc = false;
+      while (p) { if (p === targetKey) { desc = true; break; } p = rest.find((i) => i.key === p)?.parent; }
+      if (!desc) break;
+      ins++;
+    }
+    return [...rest.slice(0, ins), updated, ...rest.slice(ins)];
+  } else {
+    const updated = { ...dragging, parent: target.parent };
+    const tIdx = rest.findIndex((i) => i.key === targetKey);
+    const ins = pos === "before" ? tIdx : tIdx + 1;
+    return [...rest.slice(0, ins), updated, ...rest.slice(ins)];
+  }
+}
+
 function CategoryManageModal({
   categories,
   onClose,
@@ -192,36 +228,43 @@ function CategoryManageModal({
 }) {
   const [list, setList] = useState<CategoryItem[]>(JSON.parse(JSON.stringify(categories)));
   const [saving, setSaving] = useState(false);
-  const [addForm, setAddForm] = useState({ label: "", parent: "" });
-  const [showAdd, setShowAdd] = useState(false);
-  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [editKey, setEditKey] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState("");
+  const [addingChildOf, setAddingChildOf] = useState<string | "__top__" | null>(null);
+  const [addLabel, setAddLabel] = useState("");
+  const [draggingKey, setDraggingKey] = useState<string | null>(null);
+  const [dropInfo, setDropInfo] = useState<{ key: string; pos: "before" | "after" | "in" } | null>(null);
 
-  const parentOptions = list.filter((c) => !c.parent);
+  const flatTree = useMemo(() => {
+    const result: Array<CategoryItem & { depth: number }> = [];
+    const addLevel = (parentKey?: string, depth = 0) => {
+      list.filter((i) => (i.parent ?? undefined) === parentKey).forEach((i) => {
+        result.push({ ...i, depth });
+        addLevel(i.key, depth + 1);
+      });
+    };
+    addLevel(undefined, 0);
+    return result;
+  }, [list]);
 
-  const handleAdd = () => {
-    if (!addForm.label.trim()) return;
-    const key = addForm.label
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9가-힣]/g, "_")
-      .replace(/_+/g, "_")
-      + "_" + Date.now().toString(36);
-    const newCat: CategoryItem = { key, label: addForm.label.trim() };
-    if (addForm.parent) newCat.parent = addForm.parent;
+  const handleDelete = (key: string) => {
+    const toDelete = new Set<string>([key]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      list.forEach((i) => { if (i.parent && toDelete.has(i.parent) && !toDelete.has(i.key)) { toDelete.add(i.key); changed = true; } });
+    }
+    setList((prev) => prev.filter((i) => !toDelete.has(i.key)));
+  };
+
+  const handleAddConfirm = () => {
+    if (!addLabel.trim() || !addingChildOf) return;
+    const key = addLabel.trim().toLowerCase().replace(/[^a-z0-9가-힣]/g, "_").replace(/_+/g, "_") + "_" + Date.now().toString(36);
+    const newCat: CategoryItem = { key, label: addLabel.trim() };
+    if (addingChildOf !== "__top__") newCat.parent = addingChildOf;
     setList((prev) => [...prev, newCat]);
-    setAddForm({ label: "", parent: "" });
-    setShowAdd(false);
-  };
-
-  const handleDelete = (idx: number) => {
-    const cat = list[idx];
-    setList((prev) => prev.filter((_, i) => i !== idx && prev[i]?.parent !== cat.key));
-  };
-
-  const handleEditSave = (idx: number) => {
-    setList((prev) => prev.map((c, i) => i === idx ? { ...c, label: editLabel } : c));
-    setEditIdx(null);
+    setAddingChildOf(null);
+    setAddLabel("");
   };
 
   const handleSave = async () => {
@@ -238,102 +281,105 @@ function CategoryManageModal({
           <h2 className="text-base font-bold flex items-center gap-2">
             <Settings className="w-4 h-4 text-primary" /> 카테고리 관리
           </h2>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-stone-100">
-            <X className="w-4 h-4" />
-          </button>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-stone-100"><X className="w-4 h-4" /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-1">
-          {list.map((cat, idx) => (
-            <div
-              key={cat.key}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2.5 rounded-lg group hover:bg-stone-50",
-                cat.parent && "ml-6"
+        <div className="text-xs text-stone-400 px-5 py-2 bg-stone-50 border-b shrink-0 flex items-center gap-1.5">
+          <GripVertical className="w-3.5 h-3.5" />
+          드래그로 순서 변경 · 다른 항목 위에 놓으면 하위로 이동
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-3 space-y-0.5">
+          {flatTree.map((item) => (
+            <div key={item.key} className="relative">
+              {dropInfo?.key === item.key && dropInfo.pos === "before" && (
+                <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary z-10 rounded-full pointer-events-none" style={{ marginLeft: item.depth * 20 }} />
               )}
-            >
-              {cat.parent && <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />}
-              {editIdx === idx ? (
-                <>
-                  <input
-                    value={editLabel}
-                    onChange={(e) => setEditLabel(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleEditSave(idx); if (e.key === "Escape") setEditIdx(null); }}
-                    autoFocus
-                    className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                  />
-                  <button onClick={() => handleEditSave(idx)} className="p-1 hover:text-primary">
-                    <Check className="w-4 h-4" />
-                  </button>
-                  <button onClick={() => setEditIdx(null)} className="p-1 hover:text-red-500">
-                    <X className="w-4 h-4" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <span className="flex-1 text-sm">{cat.label}</span>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => { setEditIdx(idx); setEditLabel(cat.label); }}
-                      className="p-1 rounded hover:bg-amber-100 text-amber-600"
-                      title="이름 수정"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(idx)}
-                      className="p-1 rounded hover:bg-red-100 text-red-500"
-                      title="삭제"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </>
+              <div
+                draggable
+                onDragStart={() => { setDraggingKey(item.key); }}
+                onDragEnd={() => { setDraggingKey(null); setDropInfo(null); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  const r = e.currentTarget.getBoundingClientRect();
+                  const ratio = (e.clientY - r.top) / r.height;
+                  setDropInfo({ key: item.key, pos: ratio < 0.3 ? "before" : ratio > 0.7 ? "after" : "in" });
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (draggingKey && dropInfo && draggingKey !== dropInfo.key) {
+                    setList((prev) => applyPortfolioDrop(prev, draggingKey, dropInfo.key, dropInfo.pos));
+                  }
+                  setDraggingKey(null); setDropInfo(null);
+                }}
+                style={{ marginLeft: item.depth * 20 + "px" }}
+                className={cn(
+                  "flex items-center gap-2 px-2 py-2 rounded-lg group transition-colors select-none",
+                  draggingKey === item.key ? "opacity-40" : "",
+                  dropInfo?.key === item.key && dropInfo.pos === "in"
+                    ? "bg-primary/10 ring-1 ring-primary/40"
+                    : draggingKey !== item.key ? "hover:bg-stone-50" : "",
+                )}
+              >
+                <GripVertical className="w-4 h-4 text-stone-300 cursor-grab shrink-0" />
+                {item.depth > 0 && <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />}
+                {editKey === item.key ? (
+                  <>
+                    <input
+                      value={editLabel}
+                      onChange={(e) => setEditLabel(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { setList((prev) => prev.map((c) => c.key === item.key ? { ...c, label: editLabel } : c)); setEditKey(null); }
+                        if (e.key === "Escape") setEditKey(null);
+                      }}
+                      autoFocus
+                      className="flex-1 border rounded px-2 py-0.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    />
+                    <button onClick={() => { setList((prev) => prev.map((c) => c.key === item.key ? { ...c, label: editLabel } : c)); setEditKey(null); }} className="p-1 hover:text-primary text-stone-500"><Check className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => setEditKey(null)} className="p-1 hover:text-red-500 text-stone-400"><X className="w-3.5 h-3.5" /></button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 text-sm truncate">{item.label}</span>
+                    <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => { setAddingChildOf(item.key); setAddLabel(""); }} className="p-1 rounded hover:bg-stone-200 text-stone-400 hover:text-stone-600" title="하위 추가"><Plus className="w-3 h-3" /></button>
+                      <button onClick={() => { setEditKey(item.key); setEditLabel(item.label); }} className="p-1 rounded hover:bg-amber-100 text-amber-600" title="수정"><Pencil className="w-3 h-3" /></button>
+                      <button onClick={() => handleDelete(item.key)} className="p-1 rounded hover:bg-red-100 text-red-500" title="삭제"><Trash2 className="w-3 h-3" /></button>
+                    </div>
+                  </>
+                )}
+              </div>
+              {dropInfo?.key === item.key && dropInfo.pos === "after" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary z-10 rounded-full pointer-events-none" style={{ marginLeft: item.depth * 20 }} />
+              )}
+              {addingChildOf === item.key && (
+                <div className="flex items-center gap-1.5 mt-0.5 pb-1" style={{ marginLeft: (item.depth + 1) * 20 + "px" }}>
+                  <input value={addLabel} onChange={(e) => setAddLabel(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAddConfirm(); if (e.key === "Escape") { setAddingChildOf(null); setAddLabel(""); } }}
+                    autoFocus placeholder="이름 입력 후 Enter"
+                    className="flex-1 border rounded px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-primary/40" />
+                  <button onClick={handleAddConfirm} className="p-1 hover:text-primary text-stone-500"><Check className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => { setAddingChildOf(null); setAddLabel(""); }} className="p-1 hover:text-red-500 text-stone-400"><X className="w-3.5 h-3.5" /></button>
+                </div>
               )}
             </div>
           ))}
 
-          {/* Add form */}
-          {showAdd ? (
-            <div className="mt-3 p-3 bg-stone-50 rounded-xl border space-y-2">
-              <div>
-                <label className="text-xs font-semibold text-stone-600 block mb-1">카테고리 이름 *</label>
-                <input
-                  value={addForm.label}
-                  onChange={(e) => setAddForm((f) => ({ ...f, label: e.target.value }))}
-                  placeholder="예: 히노끼욕조 특수형"
-                  autoFocus
-                  className="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-stone-600 block mb-1">상위 카테고리 (서브카테고리인 경우)</label>
-                <select
-                  value={addForm.parent}
-                  onChange={(e) => setAddForm((f) => ({ ...f, parent: e.target.value }))}
-                  className="w-full border rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
-                >
-                  <option value="">없음 (최상위)</option>
-                  {parentOptions.map((p) => (
-                    <option key={p.key} value={p.key}>{p.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-2 pt-1">
-                <Button size="sm" onClick={handleAdd} disabled={!addForm.label.trim()} className="flex-1">
-                  <Plus className="w-3.5 h-3.5 mr-1" /> 추가
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => { setShowAdd(false); setAddForm({ label: "", parent: "" }); }}>
-                  취소
-                </Button>
-              </div>
+          {addingChildOf === "__top__" ? (
+            <div className="flex items-center gap-1.5 mt-2 px-2">
+              <input value={addLabel} onChange={(e) => setAddLabel(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleAddConfirm(); if (e.key === "Escape") { setAddingChildOf(null); setAddLabel(""); } }}
+                autoFocus placeholder="대분류 이름 입력 후 Enter"
+                className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40" />
+              <button onClick={handleAddConfirm} className="p-1 hover:text-primary text-stone-500"><Check className="w-4 h-4" /></button>
+              <button onClick={() => { setAddingChildOf(null); setAddLabel(""); }} className="p-1 hover:text-red-500 text-stone-400"><X className="w-4 h-4" /></button>
             </div>
           ) : (
             <button
-              onClick={() => setShowAdd(true)}
+              onClick={() => { setAddingChildOf("__top__"); setAddLabel(""); }}
               className="w-full mt-2 flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed border-stone-200 hover:border-primary text-stone-400 hover:text-primary text-sm transition-colors"
             >
-              <Plus className="w-4 h-4" /> 카테고리 추가
+              <Plus className="w-4 h-4" /> 대분류 추가
             </button>
           )}
         </div>
