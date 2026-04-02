@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import { Camera, Check, X, Loader2 } from "lucide-react";
 import { useAdminMode } from "@/hooks/useAdminMode";
 import { ImageUploadInput } from "@/components/ui/ImageUploadInput";
@@ -12,6 +12,7 @@ interface InlineEditImageProps {
   alt?: string;
   containerClassName?: string;
   imgClassName?: string;
+  fallback?: ReactNode;
 }
 
 export function InlineEditImage({
@@ -20,11 +21,13 @@ export function InlineEditImage({
   alt = "",
   containerClassName = "",
   imgClassName = "",
+  fallback,
 }: InlineEditImageProps) {
   const { isAdmin } = useAdminMode();
   const [isEditing, setIsEditing] = useState(false);
   const [newSrc, setNewSrc] = useState(src);
   const [isSaving, setIsSaving] = useState(false);
+  const [imgError, setImgError] = useState(false);
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
@@ -52,10 +55,21 @@ export function InlineEditImage({
     }
   };
 
+  const showFallback = (!src || imgError) && !!fallback;
+
   return (
     <>
       <div className={`${containerClassName} relative group/imgedit`}>
-        <img src={src} alt={alt} className={imgClassName} />
+        {showFallback ? (
+          fallback
+        ) : (
+          <img
+            src={src}
+            alt={alt}
+            className={imgClassName}
+            onError={() => setImgError(true)}
+          />
+        )}
         {isAdmin && (
           <button
             type="button"

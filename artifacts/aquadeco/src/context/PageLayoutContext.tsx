@@ -30,6 +30,7 @@ interface PageLayoutContextValue {
   pageKey: string;
   registry: SectionRegistryItem[];
   moveSection: (key: string, direction: "up" | "down") => void;
+  reorderSection: (fromKey: string, toKey: string) => void;
   toggleVisibility: (key: string) => void;
   updateBackground: (
     key: string,
@@ -121,6 +122,22 @@ export function PageLayoutProvider({
     [saveLayout]
   );
 
+  const reorderSection = useCallback(
+    (fromKey: string, toKey: string) => {
+      setLayout((prev) => {
+        const fromIdx = prev.findIndex((s) => s.key === fromKey);
+        const toIdx = prev.findIndex((s) => s.key === toKey);
+        if (fromIdx < 0 || toIdx < 0 || fromIdx === toIdx) return prev;
+        const next = [...prev];
+        const [moved] = next.splice(fromIdx, 1);
+        next.splice(toIdx, 0, moved);
+        saveLayout(next);
+        return next;
+      });
+    },
+    [saveLayout]
+  );
+
   const toggleVisibility = useCallback(
     (key: string) => {
       setLayout((prev) => {
@@ -182,6 +199,7 @@ export function PageLayoutProvider({
         pageKey,
         registry,
         moveSection,
+        reorderSection,
         toggleVisibility,
         updateBackground,
         addSection,

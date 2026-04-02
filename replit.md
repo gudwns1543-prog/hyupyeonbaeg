@@ -5,6 +5,27 @@
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 This project is the **휴편백** business website — a Korean 히노끼욕조 (Japanese cypress/hinoki bath) manufacturer's professional homepage with public-facing pages, shopping functionality, and an admin management panel.
 
+## Inline Editing System
+
+All public-facing pages use `InlineEditText` and `InlineEditImage` components for admin inline editing:
+- **InlineEditText**: Click any text when logged in as admin → shows style toolbar (bold/align/size/color) + textarea → save/cancel
+- **InlineEditImage**: Hover any image when admin → "이미지 변경" button → upload or URL input modal
+- **BulletList (Services page)**: Hover bullet list when admin → "수정" button → edit all bullets as newline-separated text
+- **SectionWrapper**: Wraps each major section with show/hide, background edit, reorder (↑↓ + drag&drop), add/remove controls
+- **PageLayoutProvider**: Manages section order/visibility per page (stored in content API as `page_layout_{pageKey}`)
+
+### Pages with Inline Editing
+- **Home.tsx** — 6 sections, all editable
+- **AboutPage.tsx** — 4 sub-page sections (CEO, philosophy, achievements, location)
+- **BusinessPage.tsx** — 4 sub-page sections (hinoki, production, care, certificate)
+- **Contact.tsx** — 4 sections: header, contact info card, chat buttons, inquiry CTA — all editable
+- **Portfolio.tsx** — portfolio items editable via admin modal
+
+### Content Key Naming Conventions
+- `contact_*` — 고객센터 page content
+- `services_*` — Services page content (Services.tsx — legacy file, not in router; actual route is /business via BusinessPage.tsx)
+- `hinoki_*` / `production_*` / `care_*` / `cert_*` — business sub-page content
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces

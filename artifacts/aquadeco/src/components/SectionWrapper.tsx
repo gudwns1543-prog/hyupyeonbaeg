@@ -1,7 +1,7 @@
 import { useState, CSSProperties } from "react";
 import {
   Eye, EyeOff, ChevronUp, ChevronDown, Palette,
-  Trash2, PlusCircle, X, Check, Loader2,
+  Trash2, PlusCircle, X, Check, Loader2, GripVertical,
 } from "lucide-react";
 import { useAdminMode } from "@/hooks/useAdminMode";
 import { usePageLayout, SectionConfig } from "@/context/PageLayoutContext";
@@ -245,10 +245,11 @@ export function SectionWrapper({
   noRemove = false,
 }: SectionWrapperProps) {
   const { isAdmin } = useAdminMode();
-  const { layout, registry, toggleVisibility, moveSection, removeSection } =
+  const { layout, registry, toggleVisibility, moveSection, reorderSection, removeSection } =
     usePageLayout();
   const [showBgEditor, setShowBgEditor] = useState(false);
   const [showAddPanel, setShowAddPanel] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const config = layout.find((s) => s.key === sectionKey);
   const sectionInfo = registry.find((r) => r.key === sectionKey);
@@ -281,10 +282,47 @@ export function SectionWrapper({
   }
 
   return (
-    <div className="relative group/section" style={hasBg ? bgStyle : undefined}>
+    <div
+      className={cn("relative group/section", isDragOver && !noReorder && "ring-2 ring-inset ring-primary ring-offset-0")}
+      style={hasBg ? bgStyle : undefined}
+      draggable={isAdmin && !noReorder}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("section-key", sectionKey);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+      onDragOver={(e) => {
+        if (noReorder) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        setIsDragOver(true);
+      }}
+      onDragLeave={(e) => {
+        if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) {
+          setIsDragOver(false);
+        }
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+        if (noReorder) return;
+        const fromKey = e.dataTransfer.getData("section-key");
+        if (fromKey && fromKey !== sectionKey) {
+          reorderSection(fromKey, sectionKey);
+        }
+      }}
+      onDragEnd={() => setIsDragOver(false)}
+    >
+      {isDragOver && !noReorder && (
+        <div className="absolute inset-x-0 top-0 h-1 bg-primary z-[70] pointer-events-none" />
+      )}
       {/* Admin top bar - appears on hover */}
       <div className="absolute top-0 left-0 right-0 z-[60] opacity-0 group-hover/section:opacity-100 transition-opacity pointer-events-none group-hover/section:pointer-events-auto">
         <div className="flex items-center gap-0.5 bg-primary/95 backdrop-blur-sm text-white px-3 py-1.5 shadow-lg text-xs">
+          {!noReorder && (
+            <span className="cursor-grab active:cursor-grabbing mr-1 opacity-60 hover:opacity-100" title="드래그하여 순서 변경">
+              <GripVertical className="w-3.5 h-3.5" />
+            </span>
+          )}
           <span className="font-semibold flex-1 truncate pr-2">
             📐 {sectionInfo?.label ?? sectionKey}
           </span>
