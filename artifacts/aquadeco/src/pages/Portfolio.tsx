@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "wouter";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
@@ -7,7 +7,7 @@ import { useGetAdminMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import {
-  Pencil, Trash2, Plus, X, Check, Loader2, Settings, ChevronRight, ChevronDown, GripVertical,
+  Pencil, Trash2, Plus, X, Check, Loader2, Settings, ChevronRight, GripVertical,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploadInput } from "@/components/ui/ImageUploadInput";
@@ -427,12 +427,6 @@ export default function Portfolio() {
     queryClient.invalidateQueries({ queryKey: ["site-content"] });
   };
 
-  // Build tab list: "전체" + all categories (sub-categories visually indented)
-  const TABS = useMemo(() => [
-    { key: "all", label: "전체", parent: undefined },
-    ...categories,
-  ], [categories]);
-
   // Recursively get all descendant keys for filtering
   const getFilterKeys = (key: string): string[] => {
     if (key === "all") return [];
@@ -440,16 +434,7 @@ export default function Portfolio() {
     return [key, ...children.flatMap((c) => getFilterKeys(c.key))];
   };
 
-  // Helpers for dropdown nav
   const childrenOf = (key: string) => categories.filter((c) => c.parent === key);
-  const topTabs = useMemo(
-    () => [{ key: "all", label: "전체", parent: undefined as string | undefined }, ...categories.filter((c) => !c.parent)],
-    [categories]
-  );
-  const isAncestorActive = (key: string): boolean => {
-    if (activeKey === key) return true;
-    return childrenOf(key).some((c) => isAncestorActive(c.key));
-  };
 
   const { items, loading, refetch } = usePortfolioItems();
   const [activeKey, setActiveKey] = useState(params.category || "all");
@@ -462,16 +447,55 @@ export default function Portfolio() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // Dropdown nav state
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
-  const [openSubMenu, setOpenSubMenu] = useState<string | null>(null);
-  const menuTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const filtered = useMemo(() => {
     if (activeKey === "all") return items;
     const filterKeys = getFilterKeys(activeKey);
     return items.filter((c) => filterKeys.includes(c.categoryKey));
   }, [items, activeKey, categories]);
+
+  // ── 3-level chain helpers ──────────────────────────────────────────────────
+  const findCat = (key: string) => categories.find((c) => c.key === key);
+
+  const getChain = (key: string): CategoryItem[] => {
+    const chain: CategoryItem[] = [];
+    let cur = findCat(key);
+    while (cur) {
+      chain.unshift(cur);
+      cur = cur.parent ? findCat(cur.parent) : undefined;
+    }
+    return chain;
+  };
+
+  const chain = activeKey === "all" ? [] : getChain(activeKey);
+  const activeTopCat = chain[0];
+  const activeMidCat = chain[1];
+  const activeLeafCat = chain[2];
+
+  const topCats = categories.filter((c) => !c.parent);
+  const midCats = activeTopCat ? childrenOf(activeTopCat.key) : [];
+  const leafCats = activeMidCat ? childrenOf(activeMidCat.key) : [];
+
+  const pillCls = (active: boolean) =>
+    cn(
+      "px-4 py-2 rounded-full text-sm font-medium transition-colors border",
+      active
+        ? "bg-primary text-white border-primary"
+        : "bg-white text-stone-700 border-stone-200 hover:border-primary hover:text-primary"
+    );
+  const subPillCls = (active: boolean) =>
+    cn(
+      "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border",
+      active
+        ? "bg-stone-800 text-white border-stone-800"
+        : "bg-white text-stone-600 border-stone-200 hover:border-stone-400"
+    );
+  const leafPillCls = (active: boolean) =>
+    cn(
+      "px-3 py-1.5 rounded-md text-xs font-medium transition-colors border",
+      active
+        ? "bg-primary/10 text-primary border-primary/30"
+        : "bg-white text-stone-500 border-stone-200 hover:border-stone-400"
+    );
 
   const handleSaveEdit = async (data: EditFormData) => {
     if (!editingItem) return;
@@ -569,109 +593,128 @@ export default function Portfolio() {
         </div>
       </div>
 
-      {/* Category Tabs — Multi-level Dropdown */}
-      <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30 overflow-visible">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center flex-wrap gap-0">
-            {topTabs.map((tab) => {
-              const children = childrenOf(tab.key);
-              const hasChildren = children.length > 0;
-              const isTabActive = isAncestorActive(tab.key);
-              return (
-                <div
-                  key={tab.key}
-                  className="relative"
-                  onMouseEnter={() => {
-                    if (menuTimer.current) clearTimeout(menuTimer.current);
-                    setOpenMenu(tab.key);
-                  }}
-                  onMouseLeave={() => {
-                    menuTimer.current = setTimeout(() => {
-                      setOpenMenu(null);
-                      setOpenSubMenu(null);
-                    }, 160);
-                  }}
-                >
-                  <button
-                    onClick={() => { setActiveKey(tab.key); setOpenMenu(null); }}
-                    className={cn(
-                      "px-5 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-1",
-                      isTabActive
-                        ? "border-primary text-primary"
-                        : "border-transparent text-stone-600 hover:text-primary"
-                    )}
-                    data-testid={`filter-${tab.key}`}
-                  >
-                    {tab.label}
-                    {hasChildren && <ChevronDown className="w-3.5 h-3.5 opacity-60" />}
-                  </button>
-
-                  {/* Dropdown — opens downward */}
-                  {hasChildren && openMenu === tab.key && (
-                    <div className="absolute top-full left-0 bg-white shadow-xl border border-stone-100 rounded-xl overflow-visible min-w-[200px] z-50 py-1">
-                      {children.map((child) => {
-                        const grandchildren = childrenOf(child.key);
-                        const hasGrand = grandchildren.length > 0;
-                        return (
-                          <div
-                            key={child.key}
-                            className="relative"
-                            onMouseEnter={() => {
-                              if (menuTimer.current) clearTimeout(menuTimer.current);
-                              setOpenSubMenu(child.key);
-                            }}
-                            onMouseLeave={() => {
-                              menuTimer.current = setTimeout(() => setOpenSubMenu(null), 160);
-                            }}
-                          >
-                            <button
-                              onClick={() => { setActiveKey(child.key); setOpenMenu(null); setOpenSubMenu(null); }}
-                              className={cn(
-                                "w-full text-left px-4 py-2.5 text-sm flex items-center justify-between gap-3 hover:bg-primary/5 hover:text-primary transition-colors",
-                                activeKey === child.key ? "text-primary bg-primary/5 font-medium" : "text-stone-700"
-                              )}
-                              data-testid={`filter-${child.key}`}
-                            >
-                              <span>{child.label}</span>
-                              {hasGrand && <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />}
-                            </button>
-
-                            {/* Flyout — opens sideways */}
-                            {hasGrand && openSubMenu === child.key && (
-                              <div
-                                className="absolute left-full top-0 bg-white shadow-xl border border-stone-100 rounded-xl overflow-hidden min-w-[180px] z-50 py-1"
-                                onMouseEnter={() => { if (menuTimer.current) clearTimeout(menuTimer.current); }}
-                                onMouseLeave={() => { menuTimer.current = setTimeout(() => setOpenSubMenu(null), 160); }}
-                              >
-                                {grandchildren.map((gc) => (
-                                  <button
-                                    key={gc.key}
-                                    onClick={() => { setActiveKey(gc.key); setOpenMenu(null); setOpenSubMenu(null); }}
-                                    className={cn(
-                                      "w-full text-left px-4 py-2.5 text-sm hover:bg-primary/5 hover:text-primary transition-colors",
-                                      activeKey === gc.key ? "text-primary bg-primary/5 font-medium" : "text-stone-700"
-                                    )}
-                                    data-testid={`filter-${gc.key}`}
-                                  >
-                                    {gc.label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+      {/* Category Filter Rows — 3-level pills (like ShopPage) */}
+      <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
+        <div className="container mx-auto px-4 py-3 space-y-2">
+          {/* 대분류 Row */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              className={pillCls(activeKey === "all")}
+              onClick={() => setActiveKey("all")}
+              data-testid="filter-all"
+            >
+              전체
+            </button>
+            {topCats.map((cat) => (
+              <button
+                key={cat.key}
+                className={pillCls(activeTopCat?.key === cat.key)}
+                onClick={() => setActiveKey(cat.key)}
+                data-testid={`filter-${cat.key}`}
+              >
+                {cat.label}
+              </button>
+            ))}
           </div>
+
+          {/* 중분류 Row — only when a 대분류 is active and has children */}
+          {activeTopCat && midCats.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                className={subPillCls(!activeMidCat)}
+                onClick={() => setActiveKey(activeTopCat.key)}
+              >
+                전체
+              </button>
+              {midCats.map((cat) => (
+                <button
+                  key={cat.key}
+                  className={subPillCls(activeMidCat?.key === cat.key)}
+                  onClick={() => setActiveKey(cat.key)}
+                  data-testid={`filter-${cat.key}`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* 소분류 Row — only when a 중분류 is active and has children */}
+          {activeMidCat && leafCats.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <button
+                className={leafPillCls(!activeLeafCat)}
+                onClick={() => setActiveKey(activeMidCat.key)}
+              >
+                전체
+              </button>
+              {leafCats.map((cat) => (
+                <button
+                  key={cat.key}
+                  className={leafPillCls(activeLeafCat?.key === cat.key)}
+                  onClick={() => setActiveKey(cat.key)}
+                  data-testid={`filter-${cat.key}`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Gallery Grid */}
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8">
+        {/* Breadcrumb — shows current location */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+          <button
+            className="hover:text-primary transition-colors"
+            onClick={() => setActiveKey("all")}
+          >
+            현장시공사례
+          </button>
+          {activeTopCat && (
+            <>
+              <span>/</span>
+              <button
+                className={cn(
+                  "hover:text-primary transition-colors",
+                  !activeMidCat && !activeLeafCat ? "text-foreground font-medium" : ""
+                )}
+                onClick={() => setActiveKey(activeTopCat.key)}
+              >
+                {activeTopCat.label}
+              </button>
+            </>
+          )}
+          {activeMidCat && (
+            <>
+              <span>/</span>
+              <button
+                className={cn(
+                  "hover:text-primary transition-colors",
+                  !activeLeafCat ? "text-foreground font-medium" : ""
+                )}
+                onClick={() => setActiveKey(activeMidCat.key)}
+              >
+                {activeMidCat.label}
+              </button>
+            </>
+          )}
+          {activeLeafCat && (
+            <>
+              <span>/</span>
+              <span className="text-foreground font-medium">{activeLeafCat.label}</span>
+            </>
+          )}
+        </div>
+        {/* Current section title */}
+        {activeKey !== "all" && (
+          <h2 className="text-lg font-semibold text-foreground mb-6">
+            {activeLeafCat?.label ?? activeMidCat?.label ?? activeTopCat?.label}
+          </h2>
+        )}
+
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
