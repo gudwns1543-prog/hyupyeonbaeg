@@ -1,16 +1,16 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { Menu, X, ChevronDown, Phone, ShoppingBag, ShoppingCart } from "lucide-react";
+import { Menu, X, ChevronDown, ChevronRight, Phone, ShoppingBag, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
+
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 const SOCIAL_LINKS = [
   {
     label: "스마트스토어",
     href: "https://smartstore.naver.com/hyu_hinokki",
-    icon: (
-      <ShoppingBag className="w-3.5 h-3.5" />
-    ),
+    icon: <ShoppingBag className="w-3.5 h-3.5" />,
   },
   {
     label: "네이버 블로그",
@@ -43,86 +43,110 @@ const SOCIAL_LINKS = [
 
 const LOGO_URL = "https://cdn.imweb.me/thumbnail/20250512/ce3e25e3dd553.png";
 
-type SubItem = { label: string; href: string };
-type MegaGroup = { heading: string; href: string; items: SubItem[] };
-type PlainNavItem = { label: string; href: string; children?: SubItem[] };
-type MegaNavItem = { label: string; href: string; mega: MegaGroup[] };
-type NavItem = PlainNavItem | MegaNavItem;
+type ShopCategory = { id: number; slug: string; name: string; parentSlug: string | null; sortOrder: number };
+type PortfolioCat = { key: string; label: string; parent?: string };
+type CatNode = { label: string; href: string; children: CatNode[] };
 
-function isMegaItem(item: NavItem): item is MegaNavItem {
-  return "mega" in item;
+const DEFAULT_PORTFOLIO_CATS: PortfolioCat[] = [
+  { key: "ujul", label: "히노끼욕조 유절" },
+  { key: "mujul", label: "히노끼욕조 무절" },
+  { key: "masame", label: "히노끼욕조 무절 마사메" },
+  { key: "yangsan", label: "히노끼욕조 양산형" },
+  { key: "yangsan_full", label: "히노끼 전신욕조", parent: "yangsan" },
+  { key: "yangsan_half", label: "히노끼 반신욕조", parent: "yangsan" },
+  { key: "location", label: "현장별 시공사례" },
+];
+
+function getSubSlug(cat: ShopCategory, cats: ShopCategory[]): string {
+  if (!cat.parentSlug) return cat.slug;
+  const prefix = cat.parentSlug + "-";
+  return cat.slug.startsWith(prefix) ? cat.slug.slice(prefix.length) : cat.slug;
 }
 
-const navItems: NavItem[] = [
-  { label: "홈", href: "/" },
-  {
-    label: "회사소개",
-    href: "/about",
-    children: [
-      { label: "CEO 인사말", href: "/about/ceo" },
-      { label: "경영이념", href: "/about/philosophy" },
-      { label: "주요실적", href: "/about/achievements" },
-      { label: "찾아오시는 길", href: "/about/location" },
-    ],
-  },
-  {
-    label: "사업소개",
-    href: "/business",
-    children: [
-      { label: "히노끼란", href: "/business/hinoki" },
-      { label: "제작방식", href: "/business/production" },
-      { label: "관리방법", href: "/business/care" },
-      { label: "원산지증명", href: "/business/certificate" },
-    ],
-  },
-  {
-    label: "쇼핑(구매하기)",
-    href: "/shop",
-    mega: [
-      {
-        heading: "히노끼욕조",
-        href: "/shop/bath",
-        items: [
-          { label: "반신욕조", href: "/shop/bath/half" },
-          { label: "전신욕조", href: "/shop/bath/full" },
-          { label: "주문제작형욕조", href: "/shop/bath/custom" },
-          { label: "할인제품", href: "/shop/bath/sale" },
-        ],
-      },
-      {
-        heading: "악세사리",
-        href: "/shop/accessory",
-        items: [
-          { label: "데크수전", href: "/shop/accessory/deck" },
-          { label: "목함수전", href: "/shop/accessory/box" },
-          { label: "외부계단", href: "/shop/accessory/stairs" },
-          { label: "월풀 시스템", href: "/shop/accessory/whirlpool" },
-        ],
-      },
-    ],
-  },
-  {
-    label: "현장 시공사례",
-    href: "/portfolio",
-    children: [
-      { label: "히노끼욕조 유절", href: "/portfolio/ujul" },
-      { label: "히노끼욕조 무절", href: "/portfolio/mujul" },
-      { label: "히노끼욕조 무절 마사메", href: "/portfolio/masame" },
-      { label: "히노끼욕조 양산형", href: "/portfolio/yangsan" },
-      { label: "현장별 시공사례", href: "/portfolio/location" },
-    ],
-  },
-  { label: "시공일정", href: "/schedule" },
-  {
-    label: "고객센터",
-    href: "/contact",
-    children: [
-      { label: "고객센터", href: "/contact" },
-      { label: "견적문의", href: "/inquiry" },
-      { label: "공지사항", href: "/notice" },
-    ],
-  },
-];
+function buildShopTree(cats: ShopCategory[]): CatNode[] {
+  const buildHref = (cat: ShopCategory): string => {
+    if (!cat.parentSlug) return `/shop/${cat.slug}`;
+    const parent = cats.find((c) => c.slug === cat.parentSlug);
+    const sub = getSubSlug(cat, cats);
+    if (!parent?.parentSlug) return `/shop/${cat.parentSlug}/${sub}`;
+    const parentSub = getSubSlug(parent, cats);
+    return `/shop/${parent.parentSlug}/${parentSub}/${sub}`;
+  };
+  const buildNodes = (parentSlug: string | null): CatNode[] =>
+    cats
+      .filter((c) => c.parentSlug === parentSlug)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((c) => ({ label: c.name, href: buildHref(c), children: buildNodes(c.slug) }));
+  return buildNodes(null);
+}
+
+function buildPortfolioTree(cats: PortfolioCat[]): CatNode[] {
+  const buildNodes = (parentKey?: string): CatNode[] =>
+    cats
+      .filter((c) => (c.parent ?? undefined) === parentKey)
+      .map((c) => ({ label: c.label, href: `/portfolio/${c.key}`, children: buildNodes(c.key) }));
+  return buildNodes(undefined);
+}
+
+function FlyoutMenu({
+  items,
+  show,
+  className,
+}: {
+  items: CatNode[];
+  show: boolean;
+  className?: string;
+}) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const onEnter = (idx: number) => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setHoveredIdx(idx);
+  };
+  const onLeave = () => {
+    timerRef.current = setTimeout(() => setHoveredIdx(null), 160);
+  };
+
+  if (!show) return null;
+
+  return (
+    <div
+      className={cn(
+        "absolute bg-white border border-stone-200 rounded-lg shadow-xl min-w-[180px] py-1.5 z-[70]",
+        className
+      )}
+    >
+      {items.map((item, idx) => (
+        <div
+          key={item.href}
+          className="relative"
+          onMouseEnter={() => onEnter(idx)}
+          onMouseLeave={onLeave}
+        >
+          <Link
+            href={item.href}
+            className="flex items-center justify-between px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 hover:text-primary transition-colors whitespace-nowrap"
+          >
+            <span>{item.label}</span>
+            {item.children.length > 0 && (
+              <ChevronRight className="w-3.5 h-3.5 ml-6 opacity-40 shrink-0" />
+            )}
+          </Link>
+          {item.children.length > 0 && hoveredIdx === idx && (
+            <FlyoutMenu
+              items={item.children}
+              show
+              className="left-full top-0 -mt-1.5"
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+type SubItem = { label: string; href: string };
 
 function DropdownMenu({ items, show }: { items: SubItem[]; show: boolean }) {
   return (
@@ -145,38 +169,49 @@ function DropdownMenu({ items, show }: { items: SubItem[]; show: boolean }) {
   );
 }
 
-function MegaMenu({ groups, show }: { groups: MegaGroup[]; show: boolean }) {
-  return (
-    <div
-      className={cn(
-        "absolute top-full left-0 bg-white border border-stone-200 rounded-lg shadow-xl py-4 px-2 z-50 transition-all duration-150 flex gap-2",
-        show ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-2 pointer-events-none"
-      )}
-    >
-      {groups.map((group) => (
-        <div key={group.href} className="min-w-[160px]">
-          <Link
-            href={group.href}
-            className="block px-3 pb-2 text-xs font-bold text-stone-500 uppercase tracking-wider hover:text-primary"
-          >
-            {group.heading}
-          </Link>
-          <div className="border-t border-stone-100 pt-1">
-            {group.items.map((sub) => (
-              <Link
-                key={sub.href}
-                href={sub.href}
-                className="block px-3 py-2 text-sm text-stone-700 hover:bg-stone-50 hover:text-primary transition-colors rounded"
-              >
-                {sub.label}
-              </Link>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+type StaticNavItem = { label: string; href: string; children?: SubItem[] };
+type DynamicNavItem = { label: string; href: string; dynamic: "shop" | "portfolio" };
+type NavItem = StaticNavItem | DynamicNavItem;
+
+function isDynamic(item: NavItem): item is DynamicNavItem {
+  return "dynamic" in item;
 }
+
+const STATIC_NAV: NavItem[] = [
+  { label: "홈", href: "/" },
+  {
+    label: "회사소개",
+    href: "/about",
+    children: [
+      { label: "CEO 인사말", href: "/about/ceo" },
+      { label: "경영이념", href: "/about/philosophy" },
+      { label: "주요실적", href: "/about/achievements" },
+      { label: "찾아오시는 길", href: "/about/location" },
+    ],
+  },
+  {
+    label: "사업소개",
+    href: "/business",
+    children: [
+      { label: "히노끼란", href: "/business/hinoki" },
+      { label: "제작방식", href: "/business/production" },
+      { label: "관리방법", href: "/business/care" },
+      { label: "원산지증명", href: "/business/certificate" },
+    ],
+  },
+  { label: "쇼핑(구매하기)", href: "/shop", dynamic: "shop" },
+  { label: "현장 시공사례", href: "/portfolio", dynamic: "portfolio" },
+  { label: "시공일정", href: "/schedule" },
+  {
+    label: "고객센터",
+    href: "/contact",
+    children: [
+      { label: "고객센터", href: "/contact" },
+      { label: "견적문의", href: "/inquiry" },
+      { label: "공지사항", href: "/notice" },
+    ],
+  },
+];
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -186,6 +221,29 @@ export default function Navbar() {
   const [location] = useLocation();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { totalCount } = useCart();
+
+  const [shopTree, setShopTree] = useState<CatNode[]>([]);
+  const [portfolioTree, setPortfolioTree] = useState<CatNode[]>([]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/categories`)
+      .then((r) => r.json())
+      .then((d) => setShopTree(buildShopTree(d.categories || [])))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/content/portfolio_categories`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!d) { setPortfolioTree(buildPortfolioTree(DEFAULT_PORTFOLIO_CATS)); return; }
+        try {
+          const raw: PortfolioCat[] = JSON.parse(d.value || "[]");
+          setPortfolioTree(buildPortfolioTree(raw.length ? raw : DEFAULT_PORTFOLIO_CATS));
+        } catch { setPortfolioTree(buildPortfolioTree(DEFAULT_PORTFOLIO_CATS)); }
+      })
+      .catch(() => setPortfolioTree(buildPortfolioTree(DEFAULT_PORTFOLIO_CATS)));
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -205,13 +263,19 @@ export default function Navbar() {
   };
 
   const handleMouseLeave = () => {
-    timeoutRef.current = setTimeout(() => setActiveDropdown(null), 120);
+    timeoutRef.current = setTimeout(() => setActiveDropdown(null), 160);
   };
 
   const isActive = (href: string) => {
     if (href === "/") return location === "/";
     return location === href || location.startsWith(href + "/");
   };
+
+  const getDynamicTree = (item: DynamicNavItem): CatNode[] =>
+    item.dynamic === "shop" ? shopTree : portfolioTree;
+
+  const flattenForMobile = (nodes: CatNode[], depth = 0): { node: CatNode; depth: number }[] =>
+    nodes.flatMap((n) => [{ node: n, depth }, ...flattenForMobile(n.children, depth + 1)]);
 
   return (
     <header
@@ -254,9 +318,7 @@ export default function Navbar() {
               src={LOGO_URL}
               alt="휴편백 로고"
               className="h-9 md:h-10 w-auto object-contain"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
             />
             <span className="text-xl font-bold text-foreground tracking-tight" data-testid="nav-logo">
               휴편백
@@ -265,16 +327,17 @@ export default function Navbar() {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-0.5">
-            {navItems.map((item) => {
-              const hasDropdown =
-                (isMegaItem(item)) ||
-                (!isMegaItem(item) && item.children && item.children.length > 0);
+            {STATIC_NAV.map((item) => {
+              const hasDrop = isDynamic(item)
+                ? getDynamicTree(item).length > 0
+                : !!(item as StaticNavItem).children?.length;
+              const isShowing = activeDropdown === item.label;
 
               return (
                 <div
                   key={item.label}
                   className="relative"
-                  onMouseEnter={() => hasDropdown && handleMouseEnter(item.label)}
+                  onMouseEnter={() => hasDrop && handleMouseEnter(item.label)}
                   onMouseLeave={handleMouseLeave}
                 >
                   <Link
@@ -287,14 +350,24 @@ export default function Navbar() {
                     )}
                   >
                     {item.label}
-                    {hasDropdown && <ChevronDown className="w-3.5 h-3.5 mt-0.5 opacity-60" />}
+                    {hasDrop && <ChevronDown className="w-3.5 h-3.5 mt-0.5 opacity-60" />}
                   </Link>
 
-                  {!isMegaItem(item) && item.children && (
-                    <DropdownMenu items={item.children} show={activeDropdown === item.label} />
-                  )}
-                  {isMegaItem(item) && (
-                    <MegaMenu groups={item.mega} show={activeDropdown === item.label} />
+                  {isDynamic(item) ? (
+                    <div
+                      className={cn(
+                        "absolute top-full left-0 transition-all duration-150 z-50",
+                        isShowing ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+                      )}
+                      onMouseEnter={() => handleMouseEnter(item.label)}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                      <FlyoutMenu items={getDynamicTree(item)} show={isShowing} />
+                    </div>
+                  ) : (
+                    (item as StaticNavItem).children && (
+                      <DropdownMenu items={(item as StaticNavItem).children!} show={isShowing} />
+                    )
                   )}
                 </div>
               );
@@ -344,11 +417,25 @@ export default function Navbar() {
         )}
       >
         <div className="container mx-auto px-4 py-3 space-y-0.5">
-          {navItems.map((item) => {
-            const hasSubs =
-              isMegaItem(item) ||
-              (!isMegaItem(item) && item.children && item.children.length > 0);
+          {STATIC_NAV.map((item) => {
             const isExpanded = expandedMobile === item.label;
+            let subItems: { label: string; href: string; depth: number }[] = [];
+
+            if (isDynamic(item)) {
+              subItems = flattenForMobile(getDynamicTree(item)).map((e) => ({
+                label: e.node.label,
+                href: e.node.href,
+                depth: e.depth,
+              }));
+            } else {
+              subItems = ((item as StaticNavItem).children || []).map((c) => ({
+                label: c.label,
+                href: c.href,
+                depth: 0,
+              }));
+            }
+
+            const hasSubs = subItems.length > 0;
 
             return (
               <div key={item.label}>
@@ -379,35 +466,16 @@ export default function Navbar() {
 
                 {hasSubs && isExpanded && (
                   <div className="ml-3 mb-2 border-l-2 border-primary/20 pl-4 space-y-0.5">
-                    {isMegaItem(item)
-                      ? item.mega.map((group) => (
-                          <div key={group.href}>
-                            <Link
-                              href={group.href}
-                              className="block py-1.5 text-xs font-bold text-stone-400 uppercase tracking-wide mt-2"
-                            >
-                              {group.heading}
-                            </Link>
-                            {group.items.map((sub) => (
-                              <Link
-                                key={sub.href}
-                                href={sub.href}
-                                className="block py-2 text-sm text-stone-600 hover:text-primary"
-                              >
-                                {sub.label}
-                              </Link>
-                            ))}
-                          </div>
-                        ))
-                      : (item as PlainNavItem).children?.map((sub) => (
-                          <Link
-                            key={sub.href}
-                            href={sub.href}
-                            className="block py-2 text-sm text-stone-600 hover:text-primary"
-                          >
-                            {sub.label}
-                          </Link>
-                        ))}
+                    {subItems.map((sub) => (
+                      <Link
+                        key={sub.href}
+                        href={sub.href}
+                        className="block py-2 text-sm text-stone-600 hover:text-primary transition-colors"
+                        style={{ paddingLeft: sub.depth * 12 }}
+                      >
+                        {sub.depth > 0 ? "└ " : ""}{sub.label}
+                      </Link>
+                    ))}
                   </div>
                 )}
               </div>

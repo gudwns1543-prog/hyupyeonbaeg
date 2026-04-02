@@ -33,6 +33,27 @@ function getCatLabel(categories: Category[], slug: string): string {
   return categories.find((c) => c.slug === slug)?.name || slug;
 }
 
+// Find a mid/leaf category by its sub-slug (the portion after the parent prefix)
+// Supports both compound slugs (bath-full) and sub-slug only (full)
+function findCatBySubSlug(
+  categories: Category[],
+  parentSlug: string,
+  subSlug: string
+): Category | undefined {
+  // 1. Exact compound slug match
+  const exact = categories.find((c) => c.slug === `${parentSlug}-${subSlug}`);
+  if (exact) return exact;
+  // 2. Match by parentSlug + stripped sub-slug
+  return categories.find(
+    (c) =>
+      c.parentSlug === parentSlug &&
+      (c.slug === subSlug ||
+        (c.slug.startsWith(parentSlug + "-")
+          ? c.slug.slice(parentSlug.length + 1) === subSlug
+          : c.slug === subSlug))
+  );
+}
+
 function ProductCard({ product, categories }: { product: Product; categories: Category[] }) {
   const { addItem } = useCart();
   const { toast } = useToast();
@@ -154,31 +175,39 @@ export default function ShopPage() {
     return cat.slug.startsWith(prefix) ? cat.slug.slice(prefix.length) : cat.slug;
   };
 
-  // Currently selected category objects
-  const activeMidCats = activeCategory ? childrenOf(activeCategory) : [];
-  const activeLeafCats = activeSub
-    ? childrenOf(`${activeCategory}-${activeSub}`)
-    : [];
+  // Resolved category objects from URL params
+  const activeMidCatObj =
+    activeCategory && activeSub
+      ? findCatBySubSlug(categories, activeCategory, activeSub)
+      : undefined;
 
-  // Page title
+  const activeLeafCatObj =
+    activeMidCatObj && activeSubSub
+      ? findCatBySubSlug(categories, activeMidCatObj.slug, activeSubSub)
+      : undefined;
+
+  const activeMidCats = activeCategory ? childrenOf(activeCategory) : [];
+  const activeLeafCats = activeMidCatObj ? childrenOf(activeMidCatObj.slug) : [];
+
+  // Page title (always shows name, never slug)
   const pageTitle = (() => {
-    if (activeSubSub) return getCatLabel(categories, `${activeCategory}-${activeSub}-${activeSubSub}`);
-    if (activeSub) return getCatLabel(categories, `${activeCategory}-${activeSub}`);
+    if (activeLeafCatObj) return activeLeafCatObj.name;
+    if (activeMidCatObj) return activeMidCatObj.name;
     if (activeCategory) return getCatLabel(categories, activeCategory);
     return "전체 제품";
   })();
 
-  // Breadcrumb
+  // Breadcrumb (always shows name, never slug)
   const breadcrumb = [
     { label: "쇼핑", href: "/shop" },
     ...(activeCategory
       ? [{ label: getCatLabel(categories, activeCategory), href: `/shop/${activeCategory}` }]
       : []),
-    ...(activeSub
-      ? [{ label: getCatLabel(categories, `${activeCategory}-${activeSub}`), href: `/shop/${activeCategory}/${activeSub}` }]
+    ...(activeMidCatObj
+      ? [{ label: activeMidCatObj.name, href: `/shop/${activeCategory}/${activeSub}` }]
       : []),
-    ...(activeSubSub
-      ? [{ label: getCatLabel(categories, `${activeCategory}-${activeSub}-${activeSubSub}`), href: `/shop/${activeCategory}/${activeSub}/${activeSubSub}` }]
+    ...(activeLeafCatObj
+      ? [{ label: activeLeafCatObj.name, href: `/shop/${activeCategory}/${activeSub}/${activeSubSub}` }]
       : []),
   ];
 
