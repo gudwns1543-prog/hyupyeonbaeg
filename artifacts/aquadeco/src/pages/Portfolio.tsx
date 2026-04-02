@@ -524,9 +524,9 @@ export default function Portfolio() {
       </div>
 
       {/* Category Tabs — Multi-level Dropdown */}
-      <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
-        <div className="container mx-auto px-4 overflow-x-auto">
-          <div className="flex items-center min-w-max">
+      <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30 overflow-visible">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center flex-wrap gap-0">
             {topTabs.map((tab) => {
               const children = childrenOf(tab.key);
               const hasChildren = children.length > 0;
