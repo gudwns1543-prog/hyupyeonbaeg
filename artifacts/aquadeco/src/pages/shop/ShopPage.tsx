@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link, useParams } from "wouter";
-import { ShoppingCart, Plus, Minus, ArrowLeft } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type Product = {
   id: number;
@@ -19,23 +21,19 @@ type Product = {
   sortOrder: number;
 };
 
-const CATEGORY_LABELS: Record<string, string> = {
-  bath: "히노끼욕조",
-  accessory: "악세사리",
+type Category = {
+  id: number;
+  slug: string;
+  name: string;
+  parentSlug: string | null;
+  sortOrder: number;
 };
 
-const SUB_LABELS: Record<string, string> = {
-  half: "반신욕조",
-  full: "전신욕조",
-  custom: "주문제작형욕조",
-  sale: "할인제품",
-  deck: "데크수전",
-  box: "목함수전",
-  stairs: "외부계단",
-  whirlpool: "월풀 시스템",
-};
+function getCatLabel(categories: Category[], slug: string): string {
+  return categories.find((c) => c.slug === slug)?.name || slug;
+}
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({ product, categories }: { product: Product; categories: Category[] }) {
   const { addItem } = useCart();
   const { toast } = useToast();
 
@@ -71,7 +69,9 @@ function ProductCard({ product }: { product: Product }) {
         )}
       </div>
       <div className="p-5">
-        <div className="text-xs text-primary font-medium mb-1">{CATEGORY_LABELS[product.category]}</div>
+        <div className="text-xs text-primary font-medium mb-1">
+          {getCatLabel(categories, product.category)}
+        </div>
         <h3 className="text-base font-bold text-foreground mb-1">{product.name}</h3>
         <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
           {product.description.split("\n")[0]}
@@ -101,24 +101,35 @@ function ProductCard({ product }: { product: Product }) {
 }
 
 export default function ShopPage() {
-  const params = useParams<{ category?: string; sub?: string }>();
+  const params = useParams<{ category?: string; sub?: string; subsub?: string }>();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const { totalCount } = useCart();
 
   const activeCategory = params.category;
   const activeSub = params.sub;
+  const activeSubSub = params.subsub;
 
+  // Load categories from API
+  useEffect(() => {
+    fetch(`${API_BASE}/api/categories`)
+      .then((r) => r.json())
+      .then((d) => setCategories(d.categories || []))
+      .catch(() => setCategories([]));
+  }, []);
+
+  // Load products filtered by category levels
   useEffect(() => {
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const base = import.meta.env.BASE_URL.replace(/\/$/, "");
-        let url = `${base}/api/products`;
-        const params2: string[] = [];
-        if (activeCategory) params2.push(`category=${activeCategory}`);
-        if (activeSub) params2.push(`sub=${activeSub}`);
-        if (params2.length) url += "?" + params2.join("&");
+        let url = `${API_BASE}/api/products`;
+        const q: string[] = [];
+        if (activeCategory) q.push(`category=${activeCategory}`);
+        if (activeSub) q.push(`sub=${activeSub}`);
+        if (activeSubSub) q.push(`subsub=${activeSubSub}`);
+        if (q.length) url += "?" + q.join("&");
         const res = await fetch(url);
         const data = await res.json();
         setProducts(data.products || []);
@@ -129,21 +140,63 @@ export default function ShopPage() {
       }
     };
     fetchProducts();
-  }, [activeCategory, activeSub]);
+  }, [activeCategory, activeSub, activeSubSub]);
 
-  const pageTitle = activeSub
-    ? SUB_LABELS[activeSub] || activeSub
-    : activeCategory
-    ? CATEGORY_LABELS[activeCategory] || activeCategory
-    : "전체 제품";
+  // Category tree helpers
+  const topLevel = categories.filter((c) => !c.parentSlug).sort((a, b) => a.sortOrder - b.sortOrder);
+  const childrenOf = (slug: string) =>
+    categories.filter((c) => c.parentSlug === slug).sort((a, b) => a.sortOrder - b.sortOrder);
 
+  // Sub-slug helpers (strip parent prefix)
+  const getSubSlug = (cat: Category): string => {
+    if (!cat.parentSlug) return cat.slug;
+    const prefix = cat.parentSlug + "-";
+    return cat.slug.startsWith(prefix) ? cat.slug.slice(prefix.length) : cat.slug;
+  };
+
+  // Currently selected category objects
+  const activeMidCats = activeCategory ? childrenOf(activeCategory) : [];
+  const activeLeafCats = activeSub
+    ? childrenOf(`${activeCategory}-${activeSub}`)
+    : [];
+
+  // Page title
+  const pageTitle = (() => {
+    if (activeSubSub) return getCatLabel(categories, `${activeCategory}-${activeSub}-${activeSubSub}`);
+    if (activeSub) return getCatLabel(categories, `${activeCategory}-${activeSub}`);
+    if (activeCategory) return getCatLabel(categories, activeCategory);
+    return "전체 제품";
+  })();
+
+  // Breadcrumb
   const breadcrumb = [
     { label: "쇼핑", href: "/shop" },
     ...(activeCategory
-      ? [{ label: CATEGORY_LABELS[activeCategory] || activeCategory, href: `/shop/${activeCategory}` }]
+      ? [{ label: getCatLabel(categories, activeCategory), href: `/shop/${activeCategory}` }]
       : []),
-    ...(activeSub ? [{ label: SUB_LABELS[activeSub] || activeSub, href: `/shop/${activeCategory}/${activeSub}` }] : []),
+    ...(activeSub
+      ? [{ label: getCatLabel(categories, `${activeCategory}-${activeSub}`), href: `/shop/${activeCategory}/${activeSub}` }]
+      : []),
+    ...(activeSubSub
+      ? [{ label: getCatLabel(categories, `${activeCategory}-${activeSub}-${activeSubSub}`), href: `/shop/${activeCategory}/${activeSub}/${activeSubSub}` }]
+      : []),
   ];
+
+  const pillCls = (active: boolean) =>
+    cn(
+      "px-4 py-2 rounded-full text-sm font-medium transition-colors border",
+      active
+        ? "bg-primary text-white border-primary"
+        : "bg-white text-stone-700 border-stone-200 hover:border-primary hover:text-primary"
+    );
+
+  const subPillCls = (active: boolean) =>
+    cn(
+      "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border",
+      active
+        ? "bg-stone-800 text-white border-stone-800"
+        : "bg-white text-stone-600 border-stone-200 hover:border-stone-400"
+    );
 
   return (
     <div className="min-h-screen pt-[104px]">
@@ -162,7 +215,14 @@ export default function ShopPage() {
             {breadcrumb.map((crumb, i) => (
               <span key={crumb.href} className="flex items-center gap-2">
                 {i > 0 && <span>/</span>}
-                <Link href={crumb.href} className={cn(i === breadcrumb.length - 1 ? "text-foreground font-medium" : "hover:text-primary")}>
+                <Link
+                  href={crumb.href}
+                  className={cn(
+                    i === breadcrumb.length - 1
+                      ? "text-foreground font-medium"
+                      : "hover:text-primary"
+                  )}
+                >
                   {crumb.label}
                 </Link>
               </span>
@@ -181,65 +241,74 @@ export default function ShopPage() {
           </Link>
         </div>
 
-        {/* Category Filter */}
-        <div className="flex flex-wrap gap-3 mb-8">
+        {/* 대분류 Filter Row */}
+        <div className="flex flex-wrap gap-3 mb-4">
           <Link href="/shop">
-            <button
-              className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium transition-colors border",
-                !activeCategory ? "bg-primary text-white border-primary" : "bg-white text-stone-700 border-stone-200 hover:border-primary hover:text-primary"
-              )}
-            >
-              전체
-            </button>
+            <button className={pillCls(!activeCategory)}>전체</button>
           </Link>
-          {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-            <Link key={key} href={`/shop/${key}`}>
-              <button
-                className={cn(
-                  "px-4 py-2 rounded-full text-sm font-medium transition-colors border",
-                  activeCategory === key ? "bg-primary text-white border-primary" : "bg-white text-stone-700 border-stone-200 hover:border-primary hover:text-primary"
-                )}
-              >
-                {label}
-              </button>
+          {topLevel.map((cat) => (
+            <Link key={cat.slug} href={`/shop/${cat.slug}`}>
+              <button className={pillCls(activeCategory === cat.slug)}>{cat.name}</button>
             </Link>
           ))}
         </div>
 
-        {/* Sub-category for bath */}
-        {activeCategory === "bath" && (
-          <div className="flex flex-wrap gap-2 mb-6">
-            {["half", "full", "custom", "sale"].map((sub) => (
-              <Link key={sub} href={`/shop/bath/${sub}`}>
-                <button
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border",
-                    activeSub === sub ? "bg-stone-800 text-white border-stone-800" : "bg-white text-stone-600 border-stone-200 hover:border-stone-400"
-                  )}
-                >
-                  {SUB_LABELS[sub]}
-                </button>
-              </Link>
-            ))}
+        {/* 중분류 Filter Row (shows when 대분류 is active and has children) */}
+        {activeCategory && activeMidCats.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            <Link href={`/shop/${activeCategory}`}>
+              <button className={subPillCls(!activeSub)}>전체</button>
+            </Link>
+            {activeMidCats.map((cat) => {
+              const subSlug = getSubSlug(cat);
+              return (
+                <Link key={cat.slug} href={`/shop/${activeCategory}/${subSlug}`}>
+                  <button className={subPillCls(activeSub === subSlug)}>{cat.name}</button>
+                </Link>
+              );
+            })}
           </div>
         )}
 
-        {/* Sub-category for accessory */}
-        {activeCategory === "accessory" && (
+        {/* 소분류 Filter Row (shows when 중분류 is active and has children) */}
+        {activeSub && activeLeafCats.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-6">
-            {["deck", "box", "stairs", "whirlpool"].map((sub) => (
-              <Link key={sub} href={`/shop/accessory/${sub}`}>
-                <button
-                  className={cn(
-                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border",
-                    activeSub === sub ? "bg-stone-800 text-white border-stone-800" : "bg-white text-stone-600 border-stone-200 hover:border-stone-400"
-                  )}
-                >
-                  {SUB_LABELS[sub]}
-                </button>
-              </Link>
-            ))}
+            <Link href={`/shop/${activeCategory}/${activeSub}`}>
+              <button
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-xs font-medium transition-colors border",
+                  !activeSubSub
+                    ? "bg-primary/10 text-primary border-primary/30"
+                    : "bg-white text-stone-500 border-stone-200 hover:border-stone-400"
+                )}
+              >
+                전체
+              </button>
+            </Link>
+            {activeLeafCats.map((cat) => {
+              const subSubSlug = getSubSlug(cat);
+              return (
+                <Link key={cat.slug} href={`/shop/${activeCategory}/${activeSub}/${subSubSlug}`}>
+                  <button
+                    className={cn(
+                      "px-3 py-1.5 rounded-md text-xs font-medium transition-colors border",
+                      activeSubSub === subSubSlug
+                        ? "bg-primary/10 text-primary border-primary/30"
+                        : "bg-white text-stone-500 border-stone-200 hover:border-stone-400"
+                    )}
+                  >
+                    {cat.name}
+                  </button>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Section title */}
+        {(activeCategory || activeSub || activeSubSub) && (
+          <div className="mb-6">
+            <h2 className="text-lg font-semibold text-foreground">{pageTitle}</h2>
           </div>
         )}
 
@@ -257,7 +326,7 @@ export default function ShopPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.id} product={product} categories={categories} />
             ))}
           </div>
         )}

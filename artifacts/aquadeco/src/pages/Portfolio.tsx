@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams } from "wouter";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
@@ -7,7 +7,7 @@ import { useGetAdminMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import {
-  Pencil, Trash2, Plus, X, Check, Loader2, Settings, ChevronRight,
+  Pencil, Trash2, Plus, X, Check, Loader2, Settings, ChevronRight, ChevronDown,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploadInput } from "@/components/ui/ImageUploadInput";
@@ -387,11 +387,22 @@ export default function Portfolio() {
     ...categories,
   ], [categories]);
 
-  // Get all keys that match activeKey (including children)
+  // Recursively get all descendant keys for filtering
   const getFilterKeys = (key: string): string[] => {
     if (key === "all") return [];
-    const children = categories.filter((c) => c.parent === key).map((c) => c.key);
-    return [key, ...children];
+    const children = categories.filter((c) => c.parent === key);
+    return [key, ...children.flatMap((c) => getFilterKeys(c.key))];
+  };
+
+  // Helpers for dropdown nav
+  const childrenOf = (key: string) => categories.filter((c) => c.parent === key);
+  const topTabs = useMemo(
+    () => [{ key: "all", label: "전체", parent: undefined as string | undefined }, ...categories.filter((c) => !c.parent)],
+    [categories]
+  );
+  const isAncestorActive = (key: string): boolean => {
+    if (activeKey === key) return true;
+    return childrenOf(key).some((c) => isAncestorActive(c.key));
   };
 
   const { items, loading, refetch } = usePortfolioItems();
@@ -404,6 +415,11 @@ export default function Portfolio() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+
+  // Dropdown nav state
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
+  const [openSubMenu, setOpenSubMenu] = useState<string | null>(null);
+  const menuTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const filtered = useMemo(() => {
     if (activeKey === "all") return items;
@@ -507,34 +523,101 @@ export default function Portfolio() {
         </div>
       </div>
 
-      {/* Category Tabs */}
+      {/* Category Tabs — Multi-level Dropdown */}
       <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
         <div className="container mx-auto px-4 overflow-x-auto">
-          <div className="flex gap-0 min-w-max">
-            {TABS.map((tab) => {
-              const isSub = !!(tab as CategoryItem).parent;
+          <div className="flex items-center min-w-max">
+            {topTabs.map((tab) => {
+              const children = childrenOf(tab.key);
+              const hasChildren = children.length > 0;
+              const isTabActive = isAncestorActive(tab.key);
               return (
-                <button
+                <div
                   key={tab.key}
-                  onClick={() => setActiveKey(tab.key)}
-                  className={cn(
-                    "py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
-                    isSub ? "px-4 text-xs" : "px-5",
-                    activeKey === tab.key
-                      ? "border-primary text-primary"
-                      : isSub
-                        ? "border-transparent text-stone-400 hover:text-primary"
-                        : "border-transparent text-stone-600 hover:text-primary"
-                  )}
-                  data-testid={`filter-${tab.key}`}
+                  className="relative"
+                  onMouseEnter={() => {
+                    if (menuTimer.current) clearTimeout(menuTimer.current);
+                    setOpenMenu(tab.key);
+                  }}
+                  onMouseLeave={() => {
+                    menuTimer.current = setTimeout(() => {
+                      setOpenMenu(null);
+                      setOpenSubMenu(null);
+                    }, 160);
+                  }}
                 >
-                  {isSub ? (
-                    <span className="flex items-center gap-0.5">
-                      <ChevronRight className="w-3 h-3 opacity-50" />
-                      {tab.label}
-                    </span>
-                  ) : tab.label}
-                </button>
+                  <button
+                    onClick={() => { setActiveKey(tab.key); setOpenMenu(null); }}
+                    className={cn(
+                      "px-5 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors flex items-center gap-1",
+                      isTabActive
+                        ? "border-primary text-primary"
+                        : "border-transparent text-stone-600 hover:text-primary"
+                    )}
+                    data-testid={`filter-${tab.key}`}
+                  >
+                    {tab.label}
+                    {hasChildren && <ChevronDown className="w-3.5 h-3.5 opacity-60" />}
+                  </button>
+
+                  {/* Dropdown — opens downward */}
+                  {hasChildren && openMenu === tab.key && (
+                    <div className="absolute top-full left-0 bg-white shadow-xl border border-stone-100 rounded-xl overflow-visible min-w-[200px] z-50 py-1">
+                      {children.map((child) => {
+                        const grandchildren = childrenOf(child.key);
+                        const hasGrand = grandchildren.length > 0;
+                        return (
+                          <div
+                            key={child.key}
+                            className="relative"
+                            onMouseEnter={() => {
+                              if (menuTimer.current) clearTimeout(menuTimer.current);
+                              setOpenSubMenu(child.key);
+                            }}
+                            onMouseLeave={() => {
+                              menuTimer.current = setTimeout(() => setOpenSubMenu(null), 160);
+                            }}
+                          >
+                            <button
+                              onClick={() => { setActiveKey(child.key); setOpenMenu(null); setOpenSubMenu(null); }}
+                              className={cn(
+                                "w-full text-left px-4 py-2.5 text-sm flex items-center justify-between gap-3 hover:bg-primary/5 hover:text-primary transition-colors",
+                                activeKey === child.key ? "text-primary bg-primary/5 font-medium" : "text-stone-700"
+                              )}
+                              data-testid={`filter-${child.key}`}
+                            >
+                              <span>{child.label}</span>
+                              {hasGrand && <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />}
+                            </button>
+
+                            {/* Flyout — opens sideways */}
+                            {hasGrand && openSubMenu === child.key && (
+                              <div
+                                className="absolute left-full top-0 bg-white shadow-xl border border-stone-100 rounded-xl overflow-hidden min-w-[180px] z-50 py-1"
+                                onMouseEnter={() => { if (menuTimer.current) clearTimeout(menuTimer.current); }}
+                                onMouseLeave={() => { menuTimer.current = setTimeout(() => setOpenSubMenu(null), 160); }}
+                              >
+                                {grandchildren.map((gc) => (
+                                  <button
+                                    key={gc.key}
+                                    onClick={() => { setActiveKey(gc.key); setOpenMenu(null); setOpenSubMenu(null); }}
+                                    className={cn(
+                                      "w-full text-left px-4 py-2.5 text-sm hover:bg-primary/5 hover:text-primary transition-colors",
+                                      activeKey === gc.key ? "text-primary bg-primary/5 font-medium" : "text-stone-700"
+                                    )}
+                                    data-testid={`filter-${gc.key}`}
+                                  >
+                                    {gc.label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>

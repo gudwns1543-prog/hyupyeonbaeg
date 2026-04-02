@@ -48,6 +48,7 @@ const emptyForm = {
   name: "",
   category: "",
   subCategory: "",
+  midSlug: "",     // 중분류 slug (UI-only, stripped before saving)
   price: "",
   priceText: "",
   description: "",
@@ -124,10 +125,11 @@ function AdditionalImagesEditor({ images, onChange }: { images: string[]; onChan
   );
 }
 
-/* ──────────────── Category Manager Component ──────────────── */
+/* ──────────────── Category Manager Component (3-level) ──────────────── */
 function CategoryManager({ categories, onRefresh }: { categories: Category[]; onRefresh: () => void }) {
   const { toast } = useToast();
   const [selectedParent, setSelectedParent] = useState<string | null>(null);
+  const [selectedMid, setSelectedMid] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editCat, setEditCat] = useState<Category | null>(null);
   const [form, setForm] = useState({ slug: "", name: "", parentSlug: "" });
@@ -137,21 +139,12 @@ function CategoryManager({ categories, onRefresh }: { categories: Category[]; on
   const topLevel = categories.filter(c => !c.parentSlug).sort((a, b) => a.sortOrder - b.sortOrder);
   const subOf = (slug: string) => categories.filter(c => c.parentSlug === slug).sort((a, b) => a.sortOrder - b.sortOrder);
 
-  const openAddTop = () => {
-    setEditCat(null);
-    setForm({ slug: "", name: "", parentSlug: "" });
-    setShowModal(true);
-  };
-  const openAddSub = (parentSlug: string) => {
-    setEditCat(null);
-    setForm({ slug: "", name: "", parentSlug });
-    setShowModal(true);
-  };
-  const openEdit = (cat: Category) => {
-    setEditCat(cat);
-    setForm({ slug: cat.slug, name: cat.name, parentSlug: cat.parentSlug || "" });
-    setShowModal(true);
-  };
+  // resolve display label for the parentSlug (handles multi-level)
+  const labelFor = (slug: string) => categories.find(c => c.slug === slug)?.name || slug;
+
+  const openAddTop = () => { setEditCat(null); setForm({ slug: "", name: "", parentSlug: "" }); setShowModal(true); };
+  const openAddSub = (parentSlug: string) => { setEditCat(null); setForm({ slug: "", name: "", parentSlug }); setShowModal(true); };
+  const openEdit = (cat: Category) => { setEditCat(cat); setForm({ slug: cat.slug, name: cat.name, parentSlug: cat.parentSlug || "" }); setShowModal(true); };
 
   const handleSave = async () => {
     if (!form.name.trim()) { toast({ title: "카테고리명을 입력해 주세요", variant: "destructive" }); return; }
@@ -159,139 +152,134 @@ function CategoryManager({ categories, onRefresh }: { categories: Category[]; on
     setSaving(true);
     try {
       let slug = form.slug.trim();
-      if (!editCat && form.parentSlug) {
-        slug = form.parentSlug + "-" + slug;
-      }
+      if (!editCat && form.parentSlug) slug = form.parentSlug + "-" + slug;
       if (editCat) {
         const res = await fetch(`${API_BASE}/api/categories/${editCat.id}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include",
           body: JSON.stringify({ name: form.name }),
         });
         if (!res.ok) throw new Error();
       } else {
         const res = await fetch(`${API_BASE}/api/categories`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
+          method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include",
           body: JSON.stringify({ slug, name: form.name, parentSlug: form.parentSlug || null, sortOrder: 99 }),
         });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.message || "오류");
-        }
+        if (!res.ok) { const d = await res.json(); throw new Error(d.message || "오류"); }
       }
       toast({ title: editCat ? "카테고리 수정 완료" : "카테고리 추가 완료" });
       setShowModal(false);
       onRefresh();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "오류가 발생했습니다";
-      toast({ title: msg, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
+      toast({ title: err instanceof Error ? err.message : "오류가 발생했습니다", variant: "destructive" });
+    } finally { setSaving(false); }
   };
 
   const handleDelete = async (cat: Category) => {
-    const hasSubs = categories.some(c => c.parentSlug === cat.slug);
-    if (hasSubs) {
+    if (categories.some(c => c.parentSlug === cat.slug)) {
       toast({ title: "하위 카테고리를 먼저 삭제해 주세요", variant: "destructive" });
-      setDeleteConfirm(null);
-      return;
+      setDeleteConfirm(null); return;
     }
     try {
       const res = await fetch(`${API_BASE}/api/categories/${cat.id}`, { method: "DELETE", credentials: "include" });
       if (!res.ok) throw new Error();
       toast({ title: "카테고리 삭제 완료" });
       setDeleteConfirm(null);
-      if (selectedParent === cat.slug) setSelectedParent(null);
+      if (selectedParent === cat.slug) { setSelectedParent(null); setSelectedMid(null); }
+      if (selectedMid === cat.slug) setSelectedMid(null);
       onRefresh();
-    } catch {
-      toast({ title: "삭제 실패", variant: "destructive" });
-    }
+    } catch { toast({ title: "삭제 실패", variant: "destructive" }); }
   };
+
+  const CatRow = ({ cat, level, active, onClick }: { cat: Category; level: "top" | "mid" | "leaf"; active?: boolean; onClick?: () => void }) => (
+    <div
+      className={cn(
+        "flex items-center gap-2 px-4 py-3 transition-colors",
+        onClick ? "cursor-pointer hover:bg-stone-50" : "hover:bg-stone-50",
+        active ? "bg-primary/5 border-l-4 border-l-primary" : ""
+      )}
+      onClick={onClick}
+    >
+      {level === "top" && <FolderTree className="w-4 h-4 text-primary/60 shrink-0" />}
+      {level === "mid" && <div className="w-2 h-2 rounded-full bg-stone-300 shrink-0 ml-1" />}
+      {level === "leaf" && <div className="w-1.5 h-1.5 rounded-full bg-primary/30 shrink-0 ml-3" />}
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium">{cat.name}</span>
+        {level !== "leaf" && <span className="ml-2 text-xs text-stone-400">({subOf(cat.slug).length})</span>}
+        {level === "leaf" && <span className="ml-2 text-xs text-stone-400 font-mono">{getSubValue(cat)}</span>}
+      </div>
+      <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
+        <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(cat)}><Pencil className="w-3 h-3" /></Button>
+        <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteConfirm(cat)}><Trash2 className="w-3 h-3" /></Button>
+      </div>
+      {onClick && <ChevronRight className={cn("w-4 h-4 text-stone-300 transition-transform shrink-0", active ? "rotate-90" : "")} />}
+    </div>
+  );
+
+  const ColHeader = ({ title, onAdd, addLabel }: { title: string; onAdd?: () => void; addLabel?: string }) => (
+    <div className="bg-stone-50 border-b border-stone-200 px-4 py-2.5 flex items-center justify-between">
+      <span className="text-sm font-semibold text-stone-700">{title}</span>
+      {onAdd && <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={onAdd}><Plus className="w-3 h-3" />{addLabel}</Button>}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">카테고리 관리</h3>
-          <p className="text-sm text-muted-foreground mt-0.5">상품 분류 카테고리를 추가·수정·삭제할 수 있습니다</p>
+          <p className="text-sm text-muted-foreground mt-0.5">대분류 → 중분류 → 소분류 3단계 구조로 관리합니다</p>
         </div>
-        <Button onClick={openAddTop} className="gap-2" size="sm">
-          <Plus className="w-4 h-4" /> 대분류 추가
-        </Button>
+        <Button onClick={openAddTop} className="gap-2" size="sm"><Plus className="w-4 h-4" /> 대분류 추가</Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-3 gap-4">
         {/* 대분류 */}
         <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          <div className="bg-stone-50 border-b border-stone-200 px-4 py-2.5">
-            <span className="text-sm font-semibold text-stone-700">대분류</span>
-          </div>
+          <ColHeader title="대분류" />
           <div className="divide-y divide-stone-100">
-            {topLevel.length === 0 && (
-              <div className="text-center py-10 text-muted-foreground text-sm">카테고리가 없습니다</div>
-            )}
+            {topLevel.length === 0 && <div className="text-center py-10 text-muted-foreground text-sm">카테고리가 없습니다</div>}
             {topLevel.map(cat => (
-              <div
-                key={cat.id}
-                className={`flex items-center gap-2 px-4 py-3 cursor-pointer hover:bg-stone-50 transition-colors ${selectedParent === cat.slug ? "bg-primary/5 border-l-4 border-l-primary" : ""}`}
-                onClick={() => setSelectedParent(cat.slug === selectedParent ? null : cat.slug)}
-              >
-                <FolderTree className="w-4 h-4 text-primary/60 shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm font-medium">{cat.name}</span>
-                  <span className="ml-2 text-xs text-stone-400">({subOf(cat.slug).length}개)</span>
-                </div>
-                <div className="flex items-center gap-0.5" onClick={e => e.stopPropagation()}>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(cat)}>
-                    <Pencil className="w-3 h-3" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteConfirm(cat)}>
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-                <ChevronRight className={`w-4 h-4 text-stone-300 transition-transform ${selectedParent === cat.slug ? "rotate-90" : ""}`} />
-              </div>
+              <CatRow
+                key={cat.id} cat={cat} level="top"
+                active={selectedParent === cat.slug}
+                onClick={() => { setSelectedParent(cat.slug === selectedParent ? null : cat.slug); setSelectedMid(null); }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* 중분류 */}
+        <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
+          <ColHeader
+            title={selectedParent ? `중분류 — ${labelFor(selectedParent)}` : "중분류"}
+            onAdd={selectedParent ? () => openAddSub(selectedParent) : undefined}
+            addLabel="중분류 추가"
+          />
+          <div className="divide-y divide-stone-100">
+            {!selectedParent && <div className="text-center py-10 text-muted-foreground text-sm">← 대분류를 선택하세요</div>}
+            {selectedParent && subOf(selectedParent).length === 0 && <div className="text-center py-10 text-muted-foreground text-sm">중분류가 없습니다</div>}
+            {selectedParent && subOf(selectedParent).map(cat => (
+              <CatRow
+                key={cat.id} cat={cat} level="mid"
+                active={selectedMid === cat.slug}
+                onClick={() => setSelectedMid(cat.slug === selectedMid ? null : cat.slug)}
+              />
             ))}
           </div>
         </div>
 
         {/* 소분류 */}
         <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-          <div className="bg-stone-50 border-b border-stone-200 px-4 py-2.5 flex items-center justify-between">
-            <span className="text-sm font-semibold text-stone-700">
-              소분류 {selectedParent ? `— ${topLevel.find(c => c.slug === selectedParent)?.name}` : ""}
-            </span>
-            {selectedParent && (
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openAddSub(selectedParent)}>
-                <Plus className="w-3 h-3" /> 소분류 추가
-              </Button>
-            )}
-          </div>
+          <ColHeader
+            title={selectedMid ? `소분류 — ${labelFor(selectedMid)}` : "소분류"}
+            onAdd={selectedMid ? () => openAddSub(selectedMid) : undefined}
+            addLabel="소분류 추가"
+          />
           <div className="divide-y divide-stone-100">
-            {!selectedParent && (
-              <div className="text-center py-10 text-muted-foreground text-sm">왼쪽에서 대분류를 선택하세요</div>
-            )}
-            {selectedParent && subOf(selectedParent).length === 0 && (
-              <div className="text-center py-10 text-muted-foreground text-sm">소분류가 없습니다</div>
-            )}
-            {selectedParent && subOf(selectedParent).map(cat => (
-              <div key={cat.id} className="flex items-center gap-2 px-4 py-3 hover:bg-stone-50">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary/40 shrink-0 ml-1" />
-                <span className="text-sm flex-1">{cat.name}</span>
-                <span className="text-xs text-stone-400 font-mono">{getSubValue(cat)}</span>
-                <div className="flex items-center gap-0.5">
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(cat)}>
-                    <Pencil className="w-3 h-3" />
-                  </Button>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteConfirm(cat)}>
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
+            {!selectedMid && <div className="text-center py-10 text-muted-foreground text-sm">← 중분류를 선택하세요</div>}
+            {selectedMid && subOf(selectedMid).length === 0 && <div className="text-center py-10 text-muted-foreground text-sm">소분류가 없습니다</div>}
+            {selectedMid && subOf(selectedMid).map(cat => (
+              <CatRow key={cat.id} cat={cat} level="leaf" />
             ))}
           </div>
         </div>
@@ -302,21 +290,29 @@ function CategoryManager({ categories, onRefresh }: { categories: Category[]; on
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>
-              {editCat ? "카테고리 수정" : form.parentSlug ? `소분류 추가 — ${topLevel.find(c => c.slug === form.parentSlug)?.name}` : "대분류 추가"}
+              {editCat
+                ? "카테고리 수정"
+                : form.parentSlug
+                  ? (() => {
+                      const parent = categories.find(c => c.slug === form.parentSlug);
+                      const isLeaf = !!parent?.parentSlug;
+                      return `${isLeaf ? "소분류" : "중분류"} 추가 — ${parent?.name || form.parentSlug}`;
+                    })()
+                  : "대분류 추가"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             {!editCat && (
               <div>
-                <Label>슬러그 (영문, 소문자)</Label>
+                <Label>슬러그 (영문·숫자·하이픈)</Label>
                 <Input
                   className="mt-1"
-                  placeholder={form.parentSlug ? "예: premium" : "예: event"}
+                  placeholder={form.parentSlug ? "예: premium" : "예: bath"}
                   value={form.slug}
                   onChange={(e) => setForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") }))}
                 />
                 {form.parentSlug && (
-                  <p className="text-xs text-muted-foreground mt-1">실제 저장: <span className="font-mono text-primary">{form.parentSlug}-{form.slug || "..."}</span></p>
+                  <p className="text-xs text-muted-foreground mt-1">실제 저장 슬러그: <span className="font-mono text-primary">{form.parentSlug}-{form.slug || "..."}</span></p>
                 )}
               </div>
             )}
@@ -324,7 +320,7 @@ function CategoryManager({ categories, onRefresh }: { categories: Category[]; on
               <Label>카테고리명</Label>
               <Input
                 className="mt-1"
-                placeholder="예: 프리미엄 욕조"
+                placeholder="예: 반신욕조"
                 value={form.name}
                 onChange={(e) => setForm(f => ({ ...f, name: e.target.value }))}
                 onKeyDown={(e) => { if (e.key === "Enter") handleSave(); }}
@@ -370,6 +366,9 @@ export default function ProductsAdmin() {
 
   const topCategories = categories.filter(c => !c.parentSlug).sort((a, b) => a.sortOrder - b.sortOrder);
   const subCategories = categories.filter(c => c.parentSlug === form.category).sort((a, b) => a.sortOrder - b.sortOrder);
+  const leafCategories = form.midSlug
+    ? categories.filter(c => c.parentSlug === form.midSlug).sort((a, b) => a.sortOrder - b.sortOrder)
+    : [];
 
   const getCatName = (slug: string) => categories.find(c => c.slug === slug)?.name || slug;
   const getSubName = (catSlug: string, subVal: string) => {
@@ -405,6 +404,17 @@ export default function ProductsAdmin() {
     fetchCategories();
   }, []);
 
+  // Derive midSlug from category + subCategory (for editing existing products)
+  const deriveMidSlug = (catSlug: string, subCat: string): string => {
+    // For 2-level: subCat="half" → find slug="bath-half" with parentSlug="bath"
+    const direct = categories.find(c => c.parentSlug === catSlug && getSubValue(c) === subCat);
+    if (direct) return direct.slug;
+    // For 3-level: subCat="half-mujul" → midSlug="bath-half"
+    const firstPart = subCat.split("-")[0];
+    const mid = categories.find(c => c.parentSlug === catSlug && getSubValue(c) === firstPart);
+    return mid?.slug || "";
+  };
+
   const openAdd = () => {
     setEditId(null);
     const firstTop = topCategories[0];
@@ -412,6 +422,7 @@ export default function ProductsAdmin() {
     setForm({
       ...emptyForm,
       category: firstTop?.slug || "",
+      midSlug: firstSub?.slug || "",
       subCategory: firstSub ? getSubValue(firstSub) : "",
     });
     setShowModal(true);
@@ -419,9 +430,11 @@ export default function ProductsAdmin() {
 
   const openEdit = (p: Product) => {
     setEditId(p.id);
+    const mid = deriveMidSlug(p.category, p.subCategory);
     setForm({
       name: p.name,
       category: p.category,
+      midSlug: mid,
       subCategory: p.subCategory,
       price: p.price !== null ? String(p.price) : "",
       priceText: p.priceText,
@@ -446,7 +459,9 @@ export default function ProductsAdmin() {
     }
     setSaving(true);
     try {
-      const body = { ...form, price: form.price ? Number(form.price) : null, sortOrder: Number(form.sortOrder), discountRate: Number(form.discountRate) };
+      // Strip UI-only midSlug before sending to API
+      const { midSlug: _mid, ...formData } = form;
+      const body = { ...formData, price: form.price ? Number(form.price) : null, sortOrder: Number(form.sortOrder), discountRate: Number(form.discountRate) };
       const url = editId ? `${API_BASE}/api/products/${editId}` : `${API_BASE}/api/products`;
       const res = await fetch(url, { method: editId ? "PATCH" : "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(body) });
       if (!res.ok) throw new Error();
@@ -619,31 +634,71 @@ export default function ProductsAdmin() {
                   <Input className="mt-1" placeholder="상품명을 입력하세요" value={form.name} onChange={(e) => setField("name", e.target.value)} />
                 </div>
                 <div>
-                  <Label>카테고리 *</Label>
+                  <Label>대분류 *</Label>
                   <Select value={form.category} onValueChange={(v) => {
-                    const firstSub = categories.filter(c => c.parentSlug === v)[0];
-                    setForm(prev => ({ ...prev, category: v, subCategory: firstSub ? getSubValue(firstSub) : "" }));
+                    const firstMid = categories.filter(c => c.parentSlug === v)[0];
+                    const firstLeaf = firstMid ? categories.filter(c => c.parentSlug === firstMid.slug)[0] : null;
+                    const subCat = firstLeaf
+                      ? getSubValue(firstMid) + "-" + getSubValue(firstLeaf)
+                      : firstMid ? getSubValue(firstMid) : "";
+                    setForm(prev => ({ ...prev, category: v, midSlug: firstMid?.slug || "", subCategory: subCat }));
                   }}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="카테고리 선택" /></SelectTrigger>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="대분류 선택" /></SelectTrigger>
                     <SelectContent>
                       {topCategories.map(c => <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label>서브카테고리 *</Label>
-                  <Select value={form.subCategory} onValueChange={(v) => setField("subCategory", v)}>
-                    <SelectTrigger className="mt-1"><SelectValue placeholder="서브카테고리 선택" /></SelectTrigger>
+                  <Label>중분류 *</Label>
+                  <Select value={form.midSlug} onValueChange={(v) => {
+                    const midCat = categories.find(c => c.slug === v);
+                    if (!midCat) return;
+                    // If no leaf categories, subCategory = midSuffix
+                    const leaves = categories.filter(c => c.parentSlug === v);
+                    const firstLeaf = leaves[0];
+                    const subCat = firstLeaf
+                      ? getSubValue(midCat) + "-" + getSubValue(firstLeaf)
+                      : getSubValue(midCat);
+                    setForm(prev => ({ ...prev, midSlug: v, subCategory: subCat }));
+                  }}>
+                    <SelectTrigger className="mt-1"><SelectValue placeholder="중분류 선택" /></SelectTrigger>
                     <SelectContent>
-                      {subCategories.map(c => (
-                        <SelectItem key={c.slug} value={getSubValue(c)}>{c.name}</SelectItem>
-                      ))}
-                      {subCategories.length === 0 && (
-                        <SelectItem value={form.subCategory || "_none"} disabled>소분류 없음</SelectItem>
-                      )}
+                      {subCategories.map(c => <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>)}
+                      {subCategories.length === 0 && <SelectItem value="_none" disabled>중분류 없음</SelectItem>}
                     </SelectContent>
                   </Select>
                 </div>
+                {leafCategories.length > 0 && (
+                  <div>
+                    <Label>소분류</Label>
+                    <Select
+                      value={(() => {
+                        if (!form.midSlug) return "";
+                        const midCat = categories.find(c => c.slug === form.midSlug);
+                        if (!midCat) return "";
+                        const midSuffix = getSubValue(midCat);
+                        // subCategory = "half-mujul" → leafSuffix = "mujul"
+                        const leafSuffix = form.subCategory.startsWith(midSuffix + "-")
+                          ? form.subCategory.slice(midSuffix.length + 1)
+                          : "";
+                        const leaf = leafCategories.find(c => getSubValue(c) === leafSuffix);
+                        return leaf?.slug || "";
+                      })()}
+                      onValueChange={(v) => {
+                        const midCat = categories.find(c => c.slug === form.midSlug);
+                        const leafCat = categories.find(c => c.slug === v);
+                        if (!midCat || !leafCat) return;
+                        setField("subCategory", getSubValue(midCat) + "-" + getSubValue(leafCat));
+                      }}
+                    >
+                      <SelectTrigger className="mt-1"><SelectValue placeholder="소분류 선택" /></SelectTrigger>
+                      <SelectContent>
+                        {leafCategories.map(c => <SelectItem key={c.slug} value={c.slug}>{c.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div>
                   <Label>소재</Label>
                   <Input className="mt-1" placeholder="예: 100% 일본산 히노끼(편백) 원목" value={form.material} onChange={(e) => setField("material", e.target.value)} />

@@ -112,6 +112,11 @@ function Router() {
           <PublicLayout><ShopPage /></PublicLayout>
         )}
       </Route>
+      <Route path="/shop/:category/:sub/:subsub">
+        {(params) => (
+          <PublicLayout><ShopPage /></PublicLayout>
+        )}
+      </Route>
       <Route path="/shop/:category/:sub">
         {(params) => (
           <PublicLayout><ShopPage /></PublicLayout>

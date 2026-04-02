@@ -165,11 +165,21 @@ seedProducts().catch(console.error);
 // GET /products — public
 router.get("/", async (req, res) => {
   try {
-    const { category, sub } = req.query;
+    const { category, sub, subsub } = req.query;
     let products = await db.select().from(productsTable);
     products = products.filter((p) => p.isVisible !== false);
     if (category) products = products.filter((p) => p.category === category);
-    if (sub) products = products.filter((p) => p.subCategory === sub);
+    if (sub && subsub) {
+      // 소분류 필터: subCategory === "sub-subsub"
+      const leafKey = `${sub}-${subsub}`;
+      products = products.filter((p) => p.subCategory === leafKey);
+    } else if (sub) {
+      // 중분류 필터: exact match OR 소분류(prefix match)
+      const subStr = String(sub);
+      products = products.filter(
+        (p) => p.subCategory === subStr || p.subCategory.startsWith(subStr + "-")
+      );
+    }
     products.sort((a, b) => a.sortOrder - b.sortOrder);
     res.json({ products });
   } catch (err) {
