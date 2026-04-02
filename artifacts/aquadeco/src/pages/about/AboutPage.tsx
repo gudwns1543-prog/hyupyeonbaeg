@@ -5,6 +5,7 @@ import { MapPin, Phone, Mail, Printer, ExternalLink, Pencil, Trash2, Plus, Check
 import { Button } from "@/components/ui/button";
 import { InlineEditText } from "@/components/InlineEditText";
 import { InlineEditImage } from "@/components/InlineEditImage";
+import { ImageUploadInput } from "@/components/ui/ImageUploadInput";
 import { useSiteContent } from "@/hooks/useSiteContent";
 import { useAdminMode } from "@/hooks/useAdminMode";
 import { useQueryClient } from "@tanstack/react-query";
@@ -27,7 +28,7 @@ function CeoGreeting() {
   return (
     <div className="space-y-12">
       <div className="text-center max-w-2xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">CEO 인사말</h2>
+        <InlineEditText contentKey="ceo_section_heading" value={gc("ceo_section_heading", "CEO 인사말")} as="h2" className="text-3xl md:text-4xl font-bold mb-4" />
         <InlineEditText
           contentKey="ceo_subtitle"
           value={gc("ceo_subtitle", "자연이 주는 선물, 일상에서 누리는 진정한 쉼 — 휴편백이 전합니다.")}
@@ -86,8 +87,9 @@ function CeoGreeting() {
               multiline
             />
             <div className="pt-4 border-t border-stone-100">
-              <p className="text-right text-foreground font-medium">
-                휴편백 대표이사 <span className="text-xl font-bold ml-2">박형준</span>
+              <p className="text-right text-foreground font-medium flex items-center justify-end gap-2">
+                <InlineEditText contentKey="ceo_title_label" value={gc("ceo_title_label", "휴편백 대표이사")} as="span" />
+                <InlineEditText contentKey="ceo_name_label" value={gc("ceo_name_label", "박형준")} as="span" className="text-xl font-bold ml-2" />
               </p>
             </div>
           </blockquote>
@@ -102,7 +104,7 @@ function Philosophy() {
   return (
     <div className="space-y-12">
       <div className="text-center max-w-2xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">경영이념</h2>
+        <InlineEditText contentKey="philosophy_section_heading" value={gc("philosophy_section_heading", "경영이념")} as="h2" className="text-3xl md:text-4xl font-bold mb-4" />
         <InlineEditText
           contentKey="philosophy_subtitle"
           value={gc("philosophy_subtitle", "휴편백은 자연의 소재로 사람들의 삶에 건강과 편안함을 더하는 것을 경영의 근본으로 삼습니다.")}
@@ -127,7 +129,7 @@ function Philosophy() {
       </div>
 
       <div className="bg-stone-50 rounded-2xl p-8 md:p-12">
-        <h3 className="text-2xl font-bold mb-4 text-center">회사 소개</h3>
+        <InlineEditText contentKey="philosophy_company_heading" value={gc("philosophy_company_heading", "회사 소개")} as="h3" className="text-2xl font-bold mb-4 text-center" />
         <InlineEditText
           contentKey="philosophy_company_desc"
           value={gc("philosophy_company_desc", "휴편백은 오랜 연구와 시공 경험을 바탕으로 히노끼욕조 전문 제작·시공·판매를 하는 기업입니다. 100% 일본산 히노끼(편백)나무를 직수입하여 FRP 방수 처리 및 짜맞춤 방식으로 욕조를 제작합니다. 피톤치드 성분이 풍부한 히노끼욕조로 일상에서 자연의 향기를 느끼실 수 있습니다.")}
@@ -308,7 +310,7 @@ function Achievements() {
   return (
     <div className="space-y-14">
       <div className="text-center max-w-2xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">주요실적</h2>
+        <InlineEditText contentKey="achievements_section_heading" value={gc("achievements_section_heading", "주요실적")} as="h2" className="text-3xl md:text-4xl font-bold mb-4" />
         <InlineEditText
           contentKey="achievements_subtitle"
           value={gc("achievements_subtitle", "창업 이후 전국 각지의 호텔·리조트·펜션·스파·주거 현장에 납품한 주요 실적을 연도별로 소개합니다.")}
@@ -427,10 +429,12 @@ function Achievements() {
       )}
 
       <div className="bg-stone-800 text-white rounded-2xl p-8 md:p-12 text-center">
-        <h3 className="text-2xl font-bold mb-3">더 자세한 납품 사례가 궁금하신가요?</h3>
-        <p className="text-stone-300 text-sm mb-6 max-w-xl mx-auto">현장별 시공사례 페이지에서 실제 설치 사진과 함께 납품 사례를 확인하실 수 있습니다.</p>
+        <InlineEditText contentKey="achievements_cta_title" value={gc("achievements_cta_title", "더 자세한 납품 사례가 궁금하신가요?")} as="h3" className="text-2xl font-bold mb-3" />
+        <InlineEditText contentKey="achievements_cta_desc" value={gc("achievements_cta_desc", "현장별 시공사례 페이지에서 실제 설치 사진과 함께 납품 사례를 확인하실 수 있습니다.")} as="p" className="text-stone-300 text-sm mb-6 max-w-xl mx-auto" multiline />
         <Link href="/portfolio">
-          <button className="bg-white text-stone-800 px-8 py-3 rounded-lg font-medium hover:bg-stone-100 transition-colors">시공사례 보러가기</button>
+          <button className="bg-white text-stone-800 px-8 py-3 rounded-lg font-medium hover:bg-stone-100 transition-colors">
+            <InlineEditText contentKey="achievements_cta_btn" value={gc("achievements_cta_btn", "시공사례 보러가기")} as="span" />
+          </button>
         </Link>
       </div>
 
@@ -476,17 +480,11 @@ function Achievements() {
                 />
               </div>
               <div>
-                <label className="text-xs font-semibold text-stone-600 block mb-1">이미지 URL</label>
-                <input
-                  type="text"
+                <label className="text-xs font-semibold text-stone-600 block mb-1">이미지</label>
+                <ImageUploadInput
                   value={formRecord.img}
-                  onChange={(e) => setFormRecord((f) => ({ ...f, img: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  onChange={(url) => setFormRecord((f) => ({ ...f, img: url }))}
                 />
-                {formRecord.img && (
-                  <img src={formRecord.img} alt="미리보기" className="mt-2 w-full h-28 object-cover rounded-lg border" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
-                )}
               </div>
             </div>
             <div className="p-5 border-t flex justify-end gap-2">
@@ -563,7 +561,7 @@ function Location() {
   return (
     <div className="space-y-10">
       <div className="text-center max-w-2xl mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4">찾아오시는 길</h2>
+        <InlineEditText contentKey="location_section_heading" value={gc("location_section_heading", "찾아오시는 길")} as="h2" className="text-3xl md:text-4xl font-bold mb-4" />
         <InlineEditText
           contentKey="location_subtitle"
           value={gc("location_subtitle", "휴편백 사업장 위치 및 연락처 정보입니다.")}
@@ -656,6 +654,7 @@ const ABOUT_DEFAULT_KEYS = ABOUT_REGISTRY.map((s) => s.key);
 export default function AboutPage() {
   const params = useParams<{ section?: string }>();
   const section = (params.section || "ceo") as Section;
+  const { gc } = useSiteContent();
 
   return (
     <PageLayoutProvider pageKey="about" defaultKeys={ABOUT_DEFAULT_KEYS} registry={ABOUT_REGISTRY}>
@@ -663,8 +662,8 @@ export default function AboutPage() {
         <SectionWrapper sectionKey="about_header" noReorder noAdd noRemove>
           <div className="bg-primary text-primary-foreground py-16 px-4">
             <div className="container mx-auto text-center">
-              <h1 className="text-3xl md:text-4xl font-bold mb-2">회사소개</h1>
-              <p className="text-primary-foreground/80">휴편백을 소개합니다</p>
+              <InlineEditText contentKey="about_page_heading" value={gc("about_page_heading", "회사소개")} as="h1" className="text-3xl md:text-4xl font-bold mb-2" />
+              <InlineEditText contentKey="about_page_subheading" value={gc("about_page_subheading", "휴편백을 소개합니다")} as="p" className="text-primary-foreground/80" />
             </div>
           </div>
         </SectionWrapper>

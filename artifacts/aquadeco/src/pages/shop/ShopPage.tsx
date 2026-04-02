@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/CartContext";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { InlineEditText } from "@/components/InlineEditText";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -122,6 +124,7 @@ function ProductCard({ product, categories }: { product: Product; categories: Ca
 }
 
 export default function ShopPage() {
+  const { gc } = useSiteContent();
   const params = useParams<{ category?: string; sub?: string; subsub?: string }>();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -232,8 +235,8 @@ export default function ShopPage() {
       {/* Page Header */}
       <div className="bg-stone-800 text-white py-16 px-4">
         <div className="container mx-auto text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">쇼핑(구매하기)</h1>
-          <p className="text-stone-300">히노끼욕조 및 악세사리 구매</p>
+          <InlineEditText contentKey="shop_page_heading" value={gc("shop_page_heading", "쇼핑(구매하기)")} as="h1" className="text-3xl md:text-4xl font-bold mb-2" />
+          <InlineEditText contentKey="shop_page_subtitle" value={gc("shop_page_subtitle", "히노끼욕조 및 악세사리 구매")} as="p" className="text-stone-300" />
         </div>
       </div>
 

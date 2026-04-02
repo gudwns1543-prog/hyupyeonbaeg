@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploadInput } from "@/components/ui/ImageUploadInput";
+import { InlineEditText } from "@/components/InlineEditText";
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
@@ -588,8 +589,8 @@ export default function Portfolio() {
 
       <div className="bg-primary text-primary-foreground py-16 px-4">
         <div className="container mx-auto text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">현장 시공사례</h1>
-          <p className="text-primary-foreground/80">휴편백이 시공한 다양한 히노끼욕조 현장 사례</p>
+          <InlineEditText contentKey="portfolio_page_heading" value={gc("portfolio_page_heading", "현장 시공사례")} as="h1" className="text-3xl md:text-4xl font-bold mb-2" />
+          <InlineEditText contentKey="portfolio_page_subtitle" value={gc("portfolio_page_subtitle", "휴편백이 시공한 다양한 히노끼욕조 현장 사례")} as="p" className="text-primary-foreground/80" />
         </div>
       </div>
 
@@ -798,8 +799,8 @@ export default function Portfolio() {
 
         {/* CTA */}
         <div className="mt-16 bg-primary/5 rounded-2xl p-10 text-center border border-primary/10">
-          <h2 className="text-2xl font-bold mb-3">나만의 히노끼욕조를 만들어보세요</h2>
-          <p className="text-muted-foreground text-sm mb-6">원하시는 욕조 크기와 스타일에 맞춘 맞춤 제작을 상담해 드립니다.</p>
+          <InlineEditText contentKey="portfolio_cta_title" value={gc("portfolio_cta_title", "나만의 히노끼욕조를 만들어보세요")} as="h2" className="text-2xl font-bold mb-3" />
+          <InlineEditText contentKey="portfolio_cta_desc" value={gc("portfolio_cta_desc", "원하시는 욕조 크기와 스타일에 맞춘 맞춤 제작을 상담해 드립니다.")} as="p" className="text-muted-foreground text-sm mb-6" multiline />
           <Link href="/inquiry">
             <Button size="lg" className="px-8" data-testid="btn-portfolio-inquiry">
               견적 문의하기

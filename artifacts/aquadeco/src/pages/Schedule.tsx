@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight, CalendarDays, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { InlineEditText } from "@/components/InlineEditText";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 type ScheduleEvent = {
   id: number;
@@ -28,6 +30,7 @@ const DOT_MAP: Record<string, string> = {
 };
 
 export default function Schedule() {
+  const { gc } = useSiteContent();
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [today] = useState(new Date());
@@ -73,8 +76,8 @@ export default function Schedule() {
     <div className="min-h-screen pt-[104px]">
       <div className="bg-stone-800 text-white py-16 px-4">
         <div className="container mx-auto text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">시공일정</h1>
-          <p className="text-stone-300">휴편백의 현장 시공 일정 안내</p>
+          <InlineEditText contentKey="schedule_page_heading" value={gc("schedule_page_heading", "시공일정")} as="h1" className="text-3xl md:text-4xl font-bold mb-2" />
+          <InlineEditText contentKey="schedule_page_subtitle" value={gc("schedule_page_subtitle", "휴편백의 현장 시공 일정 안내")} as="p" className="text-stone-300" />
         </div>
       </div>
 

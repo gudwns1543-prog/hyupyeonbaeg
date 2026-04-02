@@ -4,6 +4,8 @@ import { ChevronDown, Plus, X, Pencil, Trash2, Pin } from "lucide-react";
 import { useGetAdminMe } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { InlineEditText } from "@/components/InlineEditText";
+import { useSiteContent } from "@/hooks/useSiteContent";
 
 const BASE = "/api/notices";
 
@@ -155,6 +157,7 @@ export default function Notice() {
   const { data: adminData } = useGetAdminMe();
   const isAdmin = adminData?.isAdmin === true;
   const { toast } = useToast();
+  const { gc } = useSiteContent();
 
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,8 +213,8 @@ export default function Notice() {
     <div className="min-h-screen pt-[104px]">
       <div className="bg-stone-800 text-white py-16 px-4">
         <div className="container mx-auto text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">공지사항</h1>
-          <p className="text-stone-300">휴편백의 새로운 소식을 전해드립니다</p>
+          <InlineEditText contentKey="notice_page_heading" value={gc("notice_page_heading", "공지사항")} as="h1" className="text-3xl md:text-4xl font-bold mb-2" />
+          <InlineEditText contentKey="notice_page_subtitle" value={gc("notice_page_subtitle", "휴편백의 새로운 소식을 전해드립니다")} as="p" className="text-stone-300" />
         </div>
       </div>
 
