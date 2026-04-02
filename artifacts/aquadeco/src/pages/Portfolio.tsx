@@ -1,14 +1,38 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "wouter";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useGetAdminMe } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useSiteContent } from "@/hooks/useSiteContent";
 import {
-  Pencil, Trash2, Plus, X, Check, Loader2
+  Pencil, Trash2, Plus, X, Check, Loader2, Settings, ChevronRight,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUploadInput } from "@/components/ui/ImageUploadInput";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
+// ─── Category types ───────────────────────────────────────────────────────────
+
+type CategoryItem = {
+  key: string;
+  label: string;
+  parent?: string;
+};
+
+const DEFAULT_CATEGORIES: CategoryItem[] = [
+  { key: "ujul", label: "히노끼욕조 유절" },
+  { key: "mujul", label: "히노끼욕조 무절" },
+  { key: "masame", label: "히노끼욕조 무절 마사메" },
+  { key: "yangsan", label: "히노끼욕조 양산형" },
+  { key: "yangsan_full", label: "히노끼 전신욕조", parent: "yangsan" },
+  { key: "yangsan_half", label: "히노끼 반신욕조", parent: "yangsan" },
+  { key: "location", label: "현장별 시공사례" },
+];
+
+// ─── Portfolio item types ─────────────────────────────────────────────────────
 
 type PortfolioItem = {
   id: number;
@@ -21,24 +45,15 @@ type PortfolioItem = {
   isActive: boolean;
 };
 
-const TABS = [
-  { key: "all", label: "전체" },
-  { key: "ujul", label: "히노끼욕조 유절" },
-  { key: "mujul", label: "히노끼욕조 무절" },
-  { key: "masame", label: "히노끼욕조 무절 마사메" },
-  { key: "yangsan", label: "히노끼욕조 양산형" },
-  { key: "location", label: "현장별 시공사례" },
-];
+type EditFormData = {
+  title: string;
+  category: string;
+  categoryKey: string;
+  imageUrl: string;
+  description: string;
+};
 
-const CATEGORY_OPTIONS = [
-  { key: "ujul", label: "히노끼욕조 유절" },
-  { key: "mujul", label: "히노끼욕조 무절" },
-  { key: "masame", label: "히노끼욕조 무절 마사메" },
-  { key: "yangsan", label: "히노끼욕조 양산형" },
-  { key: "location", label: "현장별 시공사례" },
-];
-
-const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+// ─── Hooks ────────────────────────────────────────────────────────────────────
 
 function usePortfolioItems() {
   const [items, setItems] = useState<PortfolioItem[]>([]);
@@ -58,33 +73,20 @@ function usePortfolioItems() {
   };
 
   useEffect(() => { fetchItems(); }, []);
-
   return { items, loading, refetch: fetchItems };
 }
 
-type EditFormData = {
-  title: string;
-  category: string;
-  categoryKey: string;
-  imageUrl: string;
-  description: string;
-};
-
-const emptyForm: EditFormData = {
-  title: "",
-  category: "히노끼욕조 유절",
-  categoryKey: "ujul",
-  imageUrl: "",
-  description: "",
-};
+// ─── Edit Portfolio Item Modal ────────────────────────────────────────────────
 
 function EditModal({
   item,
+  categories,
   onClose,
   onSave,
   isNew,
 }: {
   item: EditFormData;
+  categories: CategoryItem[];
   onClose: () => void;
   onSave: (data: EditFormData) => Promise<void>;
   isNew: boolean;
@@ -93,7 +95,7 @@ function EditModal({
   const [saving, setSaving] = useState(false);
 
   const handleCategoryChange = (key: string) => {
-    const opt = CATEGORY_OPTIONS.find((o) => o.key === key);
+    const opt = categories.find((o) => o.key === key);
     setForm((f) => ({ ...f, categoryKey: key, category: opt?.label ?? key }));
   };
 
@@ -115,7 +117,6 @@ function EditModal({
         </div>
 
         <div className="p-6 space-y-5">
-          {/* Image Upload */}
           <div>
             <label className="block text-sm font-semibold mb-1.5 text-stone-700">
               이미지 <span className="text-red-500">*</span>
@@ -126,7 +127,6 @@ function EditModal({
             />
           </div>
 
-          {/* Category */}
           <div>
             <label className="block text-sm font-semibold mb-1.5 text-stone-700">카테고리</label>
             <select
@@ -134,13 +134,14 @@ function EditModal({
               onChange={(e) => handleCategoryChange(e.target.value)}
               className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-white"
             >
-              {CATEGORY_OPTIONS.map((o) => (
-                <option key={o.key} value={o.key}>{o.label}</option>
+              {categories.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.parent ? `└ ${o.label}` : o.label}
+                </option>
               ))}
             </select>
           </div>
 
-          {/* Title */}
           <div>
             <label className="block text-sm font-semibold mb-1.5 text-stone-700">
               제목 <span className="text-red-500">*</span>
@@ -154,7 +155,6 @@ function EditModal({
             />
           </div>
 
-          {/* Description */}
           <div>
             <label className="block text-sm font-semibold mb-1.5 text-stone-700">설명</label>
             <textarea
@@ -179,11 +179,220 @@ function EditModal({
   );
 }
 
+// ─── Category Management Modal ────────────────────────────────────────────────
+
+function CategoryManageModal({
+  categories,
+  onClose,
+  onSave,
+}: {
+  categories: CategoryItem[];
+  onClose: () => void;
+  onSave: (cats: CategoryItem[]) => Promise<void>;
+}) {
+  const [list, setList] = useState<CategoryItem[]>(JSON.parse(JSON.stringify(categories)));
+  const [saving, setSaving] = useState(false);
+  const [addForm, setAddForm] = useState({ label: "", parent: "" });
+  const [showAdd, setShowAdd] = useState(false);
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [editLabel, setEditLabel] = useState("");
+
+  const parentOptions = list.filter((c) => !c.parent);
+
+  const handleAdd = () => {
+    if (!addForm.label.trim()) return;
+    const key = addForm.label
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9가-힣]/g, "_")
+      .replace(/_+/g, "_")
+      + "_" + Date.now().toString(36);
+    const newCat: CategoryItem = { key, label: addForm.label.trim() };
+    if (addForm.parent) newCat.parent = addForm.parent;
+    setList((prev) => [...prev, newCat]);
+    setAddForm({ label: "", parent: "" });
+    setShowAdd(false);
+  };
+
+  const handleDelete = (idx: number) => {
+    const cat = list[idx];
+    setList((prev) => prev.filter((_, i) => i !== idx && prev[i]?.parent !== cat.key));
+  };
+
+  const handleEditSave = (idx: number) => {
+    setList((prev) => prev.map((c, i) => i === idx ? { ...c, label: editLabel } : c));
+    setEditIdx(null);
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(list);
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between p-5 border-b shrink-0">
+          <h2 className="text-base font-bold flex items-center gap-2">
+            <Settings className="w-4 h-4 text-primary" /> 카테고리 관리
+          </h2>
+          <button onClick={onClose} className="p-1 rounded-full hover:bg-stone-100">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-5 space-y-1">
+          {list.map((cat, idx) => (
+            <div
+              key={cat.key}
+              className={cn(
+                "flex items-center gap-2 px-3 py-2.5 rounded-lg group hover:bg-stone-50",
+                cat.parent && "ml-6"
+              )}
+            >
+              {cat.parent && <ChevronRight className="w-3.5 h-3.5 text-stone-400 shrink-0" />}
+              {editIdx === idx ? (
+                <>
+                  <input
+                    value={editLabel}
+                    onChange={(e) => setEditLabel(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleEditSave(idx); if (e.key === "Escape") setEditIdx(null); }}
+                    autoFocus
+                    className="flex-1 border rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <button onClick={() => handleEditSave(idx)} className="p-1 hover:text-primary">
+                    <Check className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => setEditIdx(null)} className="p-1 hover:text-red-500">
+                    <X className="w-4 h-4" />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <span className="flex-1 text-sm">{cat.label}</span>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => { setEditIdx(idx); setEditLabel(cat.label); }}
+                      className="p-1 rounded hover:bg-amber-100 text-amber-600"
+                      title="이름 수정"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(idx)}
+                      className="p-1 rounded hover:bg-red-100 text-red-500"
+                      title="삭제"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+
+          {/* Add form */}
+          {showAdd ? (
+            <div className="mt-3 p-3 bg-stone-50 rounded-xl border space-y-2">
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">카테고리 이름 *</label>
+                <input
+                  value={addForm.label}
+                  onChange={(e) => setAddForm((f) => ({ ...f, label: e.target.value }))}
+                  placeholder="예: 히노끼욕조 특수형"
+                  autoFocus
+                  className="w-full border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">상위 카테고리 (서브카테고리인 경우)</label>
+                <select
+                  value={addForm.parent}
+                  onChange={(e) => setAddForm((f) => ({ ...f, parent: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                >
+                  <option value="">없음 (최상위)</option>
+                  {parentOptions.map((p) => (
+                    <option key={p.key} value={p.key}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex gap-2 pt-1">
+                <Button size="sm" onClick={handleAdd} disabled={!addForm.label.trim()} className="flex-1">
+                  <Plus className="w-3.5 h-3.5 mr-1" /> 추가
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => { setShowAdd(false); setAddForm({ label: "", parent: "" }); }}>
+                  취소
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAdd(true)}
+              className="w-full mt-2 flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed border-stone-200 hover:border-primary text-stone-400 hover:text-primary text-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" /> 카테고리 추가
+            </button>
+          )}
+        </div>
+
+        <div className="p-5 border-t shrink-0 flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose} disabled={saving}>취소</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Check className="w-4 h-4 mr-1" />}
+            저장하기
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Portfolio Component ─────────────────────────────────────────────────
+
 export default function Portfolio() {
   const params = useParams<{ category?: string }>();
   const { data: adminData } = useGetAdminMe({ query: { retry: false } });
   const isAdmin = adminData?.isAdmin === true;
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { gc } = useSiteContent();
+
+  // Load categories from content API
+  const categories: CategoryItem[] = useMemo(() => {
+    try {
+      const raw = gc("portfolio_categories", "");
+      if (!raw) return DEFAULT_CATEGORIES;
+      return JSON.parse(raw);
+    } catch {
+      return DEFAULT_CATEGORIES;
+    }
+  }, [gc]);
+
+  const saveCategories = async (cats: CategoryItem[]) => {
+    await fetch(`${BASE}/api/content/portfolio_categories`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ value: JSON.stringify(cats) }),
+    });
+    queryClient.invalidateQueries({ queryKey: ["site-content"] });
+  };
+
+  // Build tab list: "전체" + all categories (sub-categories visually indented)
+  const TABS = useMemo(() => [
+    { key: "all", label: "전체", parent: undefined },
+    ...categories,
+  ], [categories]);
+
+  // Get all keys that match activeKey (including children)
+  const getFilterKeys = (key: string): string[] => {
+    if (key === "all") return [];
+    const children = categories.filter((c) => c.parent === key).map((c) => c.key);
+    return [key, ...children];
+  };
 
   const { items, loading, refetch } = usePortfolioItems();
   const [activeKey, setActiveKey] = useState(params.category || "all");
@@ -193,9 +402,14 @@ export default function Portfolio() {
 
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const filtered = activeKey === "all" ? items : items.filter((c) => c.categoryKey === activeKey);
+  const filtered = useMemo(() => {
+    if (activeKey === "all") return items;
+    const filterKeys = getFilterKeys(activeKey);
+    return items.filter((c) => filterKeys.includes(c.categoryKey));
+  }, [items, activeKey, categories]);
 
   const handleSaveEdit = async (data: EditFormData) => {
     if (!editingItem) return;
@@ -250,22 +464,39 @@ export default function Portfolio() {
     }
   };
 
+  // For AddModal: default category when opening
+  const defaultAddCategory = (): { key: string; label: string } => {
+    if (activeKey === "all") return { key: categories[0]?.key ?? "ujul", label: categories[0]?.label ?? "히노끼욕조 유절" };
+    const cat = categories.find((c) => c.key === activeKey);
+    return { key: activeKey, label: cat?.label ?? activeKey };
+  };
+
   return (
     <div className="min-h-screen pt-[104px]">
-      {/* 관리자 모드 배너 */}
+      {/* Admin banner */}
       {isAdmin && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between">
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
           <span className="text-amber-800 text-sm font-medium flex items-center gap-2">
             <Pencil className="w-4 h-4" />
             관리자 편집 모드 — 카드 위에 마우스를 올리면 수정/삭제 버튼이 나타납니다
           </span>
-          <Button
-            size="sm"
-            onClick={() => setShowAddModal(true)}
-            className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
-          >
-            <Plus className="w-4 h-4" /> 시공사례 추가
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowCategoryModal(true)}
+              className="border-amber-300 text-amber-800 hover:bg-amber-100 gap-1.5"
+            >
+              <Settings className="w-4 h-4" /> 카테고리 관리
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => setShowAddModal(true)}
+              className="bg-amber-600 hover:bg-amber-700 text-white gap-1.5"
+            >
+              <Plus className="w-4 h-4" /> 시공사례 추가
+            </Button>
+          </div>
         </div>
       )}
 
@@ -280,21 +511,32 @@ export default function Portfolio() {
       <div className="bg-white border-b border-stone-100 sticky top-[104px] z-30">
         <div className="container mx-auto px-4 overflow-x-auto">
           <div className="flex gap-0 min-w-max">
-            {TABS.map((tab) => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveKey(tab.key)}
-                className={cn(
-                  "px-5 py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
-                  activeKey === tab.key
-                    ? "border-primary text-primary"
-                    : "border-transparent text-stone-600 hover:text-primary"
-                )}
-                data-testid={`filter-${tab.key}`}
-              >
-                {tab.label}
-              </button>
-            ))}
+            {TABS.map((tab) => {
+              const isSub = !!(tab as CategoryItem).parent;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveKey(tab.key)}
+                  className={cn(
+                    "py-4 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                    isSub ? "px-4 text-xs" : "px-5",
+                    activeKey === tab.key
+                      ? "border-primary text-primary"
+                      : isSub
+                        ? "border-transparent text-stone-400 hover:text-primary"
+                        : "border-transparent text-stone-600 hover:text-primary"
+                  )}
+                  data-testid={`filter-${tab.key}`}
+                >
+                  {isSub ? (
+                    <span className="flex items-center gap-0.5">
+                      <ChevronRight className="w-3 h-3 opacity-50" />
+                      {tab.label}
+                    </span>
+                  ) : tab.label}
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -332,7 +574,6 @@ export default function Portfolio() {
                       t.src = "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg";
                     }}
                   />
-                  {/* Hover overlay (info) */}
                   <div className={cn(
                     "absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-end p-3",
                     isAdmin && "group-hover:bg-black/40"
@@ -345,7 +586,6 @@ export default function Portfolio() {
                     </div>
                   </div>
 
-                  {/* Admin action buttons */}
                   {isAdmin && (
                     <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                       <button
@@ -372,7 +612,6 @@ export default function Portfolio() {
               </div>
             ))}
 
-            {/* Admin: Add new card */}
             {isAdmin && (
               <button
                 onClick={() => setShowAddModal(true)}
@@ -397,7 +636,7 @@ export default function Portfolio() {
         </div>
       </div>
 
-      {/* Edit Modal */}
+      {/* Edit modal */}
       {editingItem && (
         <EditModal
           item={{
@@ -407,19 +646,36 @@ export default function Portfolio() {
             imageUrl: editingItem.imageUrl,
             description: editingItem.description,
           }}
+          categories={categories}
           onClose={() => setEditingItem(null)}
           onSave={handleSaveEdit}
           isNew={false}
         />
       )}
 
-      {/* Add Modal */}
+      {/* Add modal */}
       {showAddModal && (
         <EditModal
-          item={{ ...emptyForm, categoryKey: activeKey === "all" ? "ujul" : activeKey, category: CATEGORY_OPTIONS.find((o) => o.key === (activeKey === "all" ? "ujul" : activeKey))?.label ?? "히노끼욕조 유절" }}
+          item={{
+            title: "",
+            category: defaultAddCategory().label,
+            categoryKey: defaultAddCategory().key,
+            imageUrl: "",
+            description: "",
+          }}
+          categories={categories}
           onClose={() => setShowAddModal(false)}
           onSave={handleSaveNew}
           isNew={true}
+        />
+      )}
+
+      {/* Category management modal */}
+      {showCategoryModal && (
+        <CategoryManageModal
+          categories={categories}
+          onClose={() => setShowCategoryModal(false)}
+          onSave={saveCategories}
         />
       )}
     </div>

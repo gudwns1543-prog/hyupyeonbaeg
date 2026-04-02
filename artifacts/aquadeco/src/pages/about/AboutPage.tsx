@@ -1,12 +1,17 @@
 import { Link, useParams } from "wouter";
+import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { MapPin, CheckCircle2, Phone, Mail, Printer, Building2, ExternalLink } from "lucide-react";
+import { MapPin, Phone, Mail, Printer, ExternalLink, Pencil, Trash2, Plus, Check, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineEditText } from "@/components/InlineEditText";
 import { InlineEditImage } from "@/components/InlineEditImage";
 import { useSiteContent } from "@/hooks/useSiteContent";
+import { useAdminMode } from "@/hooks/useAdminMode";
+import { useQueryClient } from "@tanstack/react-query";
 import { SectionWrapper } from "@/components/SectionWrapper";
 import { PageLayoutProvider, SectionRegistryItem } from "@/context/PageLayoutContext";
+
+const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 type Section = "ceo" | "philosophy" | "achievements" | "location";
 
@@ -135,64 +140,170 @@ function Philosophy() {
   );
 }
 
+type AchievementRecord = { title: string; desc: string; type: string; img: string };
+type AchievementYear = { year: string; label: string; color: string; records: AchievementRecord[] };
+
+const DEFAULT_ACHIEVEMENT_YEARS: AchievementYear[] = [
+  {
+    year: "2020", label: "창업 원년", color: "bg-amber-500",
+    records: [
+      { title: "경기도 화성시 동탄 풀빌라 펜션", desc: "히노끼 반신욕조 8실 납품 시공. 창업 첫 해 대형 펜션 단지 납품으로 사업 기반 마련.", type: "펜션", img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg" },
+      { title: "경기도 가평군 글램핑 펜션", desc: "히노끼 전신욕조 4실 납품 시공. 자연 속 힐링 공간에 어울리는 편백욕조 시공.", type: "펜션", img: "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg" },
+      { title: "강원도 춘천 독채 풀빌라", desc: "무절 히노끼 전신욕조 6실 납품 시공. 개장 후 예약률 90% 달성에 기여.", type: "풀빌라", img: "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg" },
+    ],
+  },
+  {
+    year: "2021", label: "성장기", color: "bg-primary",
+    records: [
+      { title: "강원도 속초 오션뷰 호텔", desc: "반신욕조 12실 / 전신욕조 4실 납품 시공. 동해안 최초 대형 호텔 히노끼욕조 납품 사례.", type: "호텔", img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6573d34824eba.jpg" },
+      { title: "제주도 서귀포 프리미엄 리조트", desc: "무절 마사메 전신욕조 20실 납품 시공. 국내 최고급 리조트 객실 욕실에 히노끼욕조 적용.", type: "리조트", img: "https://cdn.imweb.me/thumbnail/20220107/63a49465fff4d.jpg" },
+      { title: "경기도 양평 한옥 스테이", desc: "짜맞춤 방식 히노끼 전신욕조 6실 납품. 한옥 건축물과 어울리는 전통 짜맞춤 기법 적용.", type: "한옥스테이", img: "https://cdn.imweb.me/thumbnail/20220110/8d3f5e9a4c721.jpg" },
+      { title: "경기도 수원 고급 단독주택", desc: "무절 히노끼 반신욕조 1실 맞춤 제작 납품. 개인 가정용 최고급 등급 시공.", type: "주거", img: "https://cdn.imweb.me/thumbnail/20220111/0f63ba036910f.jpg" },
+    ],
+  },
+  {
+    year: "2022", label: "전국 확대", color: "bg-primary",
+    records: [
+      { title: "부산 해운대 프리미엄 스파", desc: "대형 히노끼 탕 2기 / 반신욕조 8실 납품 시공. 스파 전용 대형 히노끼 탕 자체 설계 제작.", type: "스파", img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg" },
+      { title: "전라남도 여수 디오션 인근 풀빌라", desc: "히노끼 전신욕조 15실 납품 시공. 여수 관광 특수를 겨냥한 고급 펜션 단지 대량 납품.", type: "풀빌라", img: "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg" },
+      { title: "강원도 강릉 경포 인근 펜션", desc: "반신욕조 10실 납품 시공. 해변 인접 럭셔리 펜션 차별화 요소로 히노끼욕조 도입.", type: "펜션", img: "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg" },
+      { title: "경상북도 경주 한옥호텔", desc: "짜맞춤 방식 히노끼 반신욕조 8실 납품. 신라 문화 도시 경주의 고급 한옥호텔에 전통 기법 적용.", type: "한옥호텔", img: "https://cdn.imweb.me/thumbnail/20240905/17a681d712222.jpg" },
+    ],
+  },
+  {
+    year: "2023", label: "도심 시장 진출", color: "bg-primary",
+    records: [
+      { title: "서울 강남 고급 아파트 리모델링", desc: "FRP 방수 히노끼 욕조 3가구 납품. 아파트 욕실 리모델링 시장 진출, FRP 방수 기술 본격 적용.", type: "주거", img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6573d34824eba.jpg" },
+      { title: "경기도 용인 프리미엄 스파 찜질방", desc: "히노끼 대형 탕 4기 납품 시공. 수도권 프리미엄 스파 시장 납품 레퍼런스 확보.", type: "스파", img: "https://cdn.imweb.me/thumbnail/20220107/63a49465fff4d.jpg" },
+      { title: "충청남도 태안 해변 리조트", desc: "반신욕조 20실 / 전신욕조 5실 납품 시공. 서해안 최대 규모 히노끼욕조 납품 프로젝트.", type: "리조트", img: "https://cdn.imweb.me/thumbnail/20220110/8d3f5e9a4c721.jpg" },
+      { title: "인천 송도 신규 호텔", desc: "FRP 방수 히노끼 반신욕조 18실 납품. 국제도시 송도 신축 호텔 전 객실 욕조 공급.", type: "호텔", img: "https://cdn.imweb.me/thumbnail/20220111/0f63ba036910f.jpg" },
+    ],
+  },
+  {
+    year: "2024", label: "최근 실적", color: "bg-amber-500",
+    records: [
+      { title: "강원도 평창 마운틴 리조트", desc: "무절 마사메 전신욕조 24실 납품 시공. 스키 리조트 프리미엄 객실 욕조 전량 공급.", type: "리조트", img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg" },
+      { title: "제주도 제주시 럭셔리 독채 풀빌라", desc: "짜맞춤 무절 전신욕조 12실 납품. 제주 프리미엄 숙박 시장을 겨냥한 최고급 납품 사례.", type: "풀빌라", img: "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg" },
+      { title: "경기도 파주 DMZ 인근 힐링 스파", desc: "대형 히노끼 탕 2기 / 반신욕조 10실 납품. 힐링·웰니스 콘셉트 신규 스파 시설 전체 공급.", type: "스파", img: "https://cdn.imweb.me/thumbnail/20240905/17a681d712222.jpg" },
+    ],
+  },
+];
+
+const ACHIEVEMENT_TYPE_COLORS: Record<string, string> = {
+  "펜션": "bg-green-100 text-green-700",
+  "풀빌라": "bg-teal-100 text-teal-700",
+  "호텔": "bg-blue-100 text-blue-700",
+  "리조트": "bg-indigo-100 text-indigo-700",
+  "스파": "bg-purple-100 text-purple-700",
+  "한옥스테이": "bg-amber-100 text-amber-700",
+  "한옥호텔": "bg-amber-100 text-amber-700",
+  "주거": "bg-rose-100 text-rose-700",
+};
+
+const ACHIEVEMENT_TYPES = ["펜션", "풀빌라", "호텔", "리조트", "스파", "한옥스테이", "한옥호텔", "주거", "기타"];
+const YEAR_COLORS = [
+  { value: "bg-primary", label: "초록" },
+  { value: "bg-amber-500", label: "앰버" },
+  { value: "bg-stone-700", label: "다크" },
+  { value: "bg-blue-600", label: "파랑" },
+];
+
 function Achievements() {
   const { gc } = useSiteContent();
-  const years = [
-    {
-      year: "2020", label: "창업 원년", color: "bg-amber-500",
-      records: [
-        { title: "경기도 화성시 동탄 풀빌라 펜션", desc: "히노끼 반신욕조 8실 납품 시공. 창업 첫 해 대형 펜션 단지 납품으로 사업 기반 마련.", type: "펜션", img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg" },
-        { title: "경기도 가평군 글램핑 펜션", desc: "히노끼 전신욕조 4실 납품 시공. 자연 속 힐링 공간에 어울리는 편백욕조 시공.", type: "펜션", img: "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg" },
-        { title: "강원도 춘천 독채 풀빌라", desc: "무절 히노끼 전신욕조 6실 납품 시공. 개장 후 예약률 90% 달성에 기여.", type: "풀빌라", img: "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg" },
-      ],
-    },
-    {
-      year: "2021", label: "성장기", color: "bg-primary",
-      records: [
-        { title: "강원도 속초 오션뷰 호텔", desc: "반신욕조 12실 / 전신욕조 4실 납품 시공. 동해안 최초 대형 호텔 히노끼욕조 납품 사례.", type: "호텔", img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6573d34824eba.jpg" },
-        { title: "제주도 서귀포 프리미엄 리조트", desc: "무절 마사메 전신욕조 20실 납품 시공. 국내 최고급 리조트 객실 욕실에 히노끼욕조 적용.", type: "리조트", img: "https://cdn.imweb.me/thumbnail/20220107/63a49465fff4d.jpg" },
-        { title: "경기도 양평 한옥 스테이", desc: "짜맞춤 방식 히노끼 전신욕조 6실 납품. 한옥 건축물과 어울리는 전통 짜맞춤 기법 적용.", type: "한옥스테이", img: "https://cdn.imweb.me/thumbnail/20220110/8d3f5e9a4c721.jpg" },
-        { title: "경기도 수원 고급 단독주택", desc: "무절 히노끼 반신욕조 1실 맞춤 제작 납품. 개인 가정용 최고급 등급 시공.", type: "주거", img: "https://cdn.imweb.me/thumbnail/20220111/0f63ba036910f.jpg" },
-      ],
-    },
-    {
-      year: "2022", label: "전국 확대", color: "bg-primary",
-      records: [
-        { title: "부산 해운대 프리미엄 스파", desc: "대형 히노끼 탕 2기 / 반신욕조 8실 납품 시공. 스파 전용 대형 히노끼 탕 자체 설계 제작.", type: "스파", img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg" },
-        { title: "전라남도 여수 디오션 인근 풀빌라", desc: "히노끼 전신욕조 15실 납품 시공. 여수 관광 특수를 겨냥한 고급 펜션 단지 대량 납품.", type: "풀빌라", img: "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg" },
-        { title: "강원도 강릉 경포 인근 펜션", desc: "반신욕조 10실 납품 시공. 해변 인접 럭셔리 펜션 차별화 요소로 히노끼욕조 도입.", type: "펜션", img: "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg" },
-        { title: "경상북도 경주 한옥호텔", desc: "짜맞춤 방식 히노끼 반신욕조 8실 납품. 신라 문화 도시 경주의 고급 한옥호텔에 전통 기법 적용.", type: "한옥호텔", img: "https://cdn.imweb.me/thumbnail/20240905/17a681d712222.jpg" },
-      ],
-    },
-    {
-      year: "2023", label: "도심 시장 진출", color: "bg-primary",
-      records: [
-        { title: "서울 강남 고급 아파트 리모델링", desc: "FRP 방수 히노끼 욕조 3가구 납품. 아파트 욕실 리모델링 시장 진출, FRP 방수 기술 본격 적용.", type: "주거", img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6573d34824eba.jpg" },
-        { title: "경기도 용인 프리미엄 스파 찜질방", desc: "히노끼 대형 탕 4기 납품 시공. 수도권 프리미엄 스파 시장 납품 레퍼런스 확보.", type: "스파", img: "https://cdn.imweb.me/thumbnail/20220107/63a49465fff4d.jpg" },
-        { title: "충청남도 태안 해변 리조트", desc: "반신욕조 20실 / 전신욕조 5실 납품 시공. 서해안 최대 규모 히노끼욕조 납품 프로젝트.", type: "리조트", img: "https://cdn.imweb.me/thumbnail/20220110/8d3f5e9a4c721.jpg" },
-        { title: "인천 송도 신규 호텔", desc: "FRP 방수 히노끼 반신욕조 18실 납품. 국제도시 송도 신축 호텔 전 객실 욕조 공급.", type: "호텔", img: "https://cdn.imweb.me/thumbnail/20220111/0f63ba036910f.jpg" },
-      ],
-    },
-    {
-      year: "2024", label: "최근 실적", color: "bg-amber-500",
-      records: [
-        { title: "강원도 평창 마운틴 리조트", desc: "무절 마사메 전신욕조 24실 납품 시공. 스키 리조트 프리미엄 객실 욕조 전량 공급.", type: "리조트", img: "https://cdn-optimized.imweb.me/upload/S202009213e99d638e95aa/6bf89575469c9.jpg" },
-        { title: "제주도 제주시 럭셔리 독채 풀빌라", desc: "짜맞춤 무절 전신욕조 12실 납품. 제주 프리미엄 숙박 시장을 겨냥한 최고급 납품 사례.", type: "풀빌라", img: "https://cdn.imweb.me/thumbnail/20220301/5de4b9e35abfa.jpg" },
-        { title: "경기도 파주 DMZ 인근 힐링 스파", desc: "대형 히노끼 탕 2기 / 반신욕조 10실 납품. 힐링·웰니스 콘셉트 신규 스파 시설 전체 공급.", type: "스파", img: "https://cdn.imweb.me/thumbnail/20240905/17a681d712222.jpg" },
-      ],
-    },
-  ];
+  const { isAdmin } = useAdminMode();
+  const queryClient = useQueryClient();
 
-  const typeColors: Record<string, string> = {
-    "펜션": "bg-green-100 text-green-700",
-    "풀빌라": "bg-teal-100 text-teal-700",
-    "호텔": "bg-blue-100 text-blue-700",
-    "리조트": "bg-indigo-100 text-indigo-700",
-    "스파": "bg-purple-100 text-purple-700",
-    "한옥스테이": "bg-amber-100 text-amber-700",
-    "한옥호텔": "bg-amber-100 text-amber-700",
-    "주거": "bg-rose-100 text-rose-700",
+  const yearsData: AchievementYear[] = useMemo(() => {
+    try {
+      const raw = gc("achievements_data", "");
+      if (!raw) return DEFAULT_ACHIEVEMENT_YEARS;
+      return JSON.parse(raw);
+    } catch {
+      return DEFAULT_ACHIEVEMENT_YEARS;
+    }
+  }, [gc]);
+
+  const saveYears = async (newData: AchievementYear[]) => {
+    await fetch(`${API_BASE}/api/content/achievements_data`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ value: JSON.stringify(newData) }),
+    });
+    queryClient.invalidateQueries({ queryKey: ["site-content"] });
   };
+
+  type ModalState =
+    | { mode: "edit_record"; yearIdx: number; recIdx: number }
+    | { mode: "add_record"; yearIdx: number }
+    | { mode: "edit_year"; yearIdx: number }
+    | { mode: "add_year" };
+
+  const [modal, setModal] = useState<ModalState | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [formYear, setFormYear] = useState({ year: "", label: "", color: "bg-primary" });
+  const [formRecord, setFormRecord] = useState<AchievementRecord>({ title: "", desc: "", type: "펜션", img: "" });
+
+  const openEditRecord = (yearIdx: number, recIdx: number) => {
+    setFormRecord({ ...yearsData[yearIdx].records[recIdx] });
+    setModal({ mode: "edit_record", yearIdx, recIdx });
+  };
+  const openAddRecord = (yearIdx: number) => {
+    setFormRecord({ title: "", desc: "", type: "펜션", img: "" });
+    setModal({ mode: "add_record", yearIdx });
+  };
+  const openEditYear = (yearIdx: number) => {
+    const y = yearsData[yearIdx];
+    setFormYear({ year: y.year, label: y.label, color: y.color });
+    setModal({ mode: "edit_year", yearIdx });
+  };
+  const openAddYear = () => {
+    setFormYear({ year: "", label: "", color: "bg-primary" });
+    setModal({ mode: "add_year" });
+  };
+
+  const handleSaveRecord = async () => {
+    if (!modal) return;
+    setSaving(true);
+    const newData: AchievementYear[] = JSON.parse(JSON.stringify(yearsData));
+    if (modal.mode === "edit_record") {
+      newData[modal.yearIdx].records[modal.recIdx] = formRecord;
+    } else if (modal.mode === "add_record") {
+      newData[modal.yearIdx].records.push(formRecord);
+    }
+    await saveYears(newData);
+    setSaving(false);
+    setModal(null);
+  };
+
+  const handleSaveYear = async () => {
+    if (!modal) return;
+    setSaving(true);
+    const newData: AchievementYear[] = JSON.parse(JSON.stringify(yearsData));
+    if (modal.mode === "edit_year") {
+      newData[modal.yearIdx] = { ...newData[modal.yearIdx], ...formYear };
+    } else if (modal.mode === "add_year") {
+      newData.push({ ...formYear, records: [] });
+    }
+    await saveYears(newData);
+    setSaving(false);
+    setModal(null);
+  };
+
+  const handleDeleteRecord = async (yearIdx: number, recIdx: number) => {
+    if (!window.confirm("이 실적을 삭제하시겠습니까?")) return;
+    const newData: AchievementYear[] = JSON.parse(JSON.stringify(yearsData));
+    newData[yearIdx].records.splice(recIdx, 1);
+    await saveYears(newData);
+  };
+
+  const handleDeleteYear = async (yearIdx: number) => {
+    if (!window.confirm(`${yearsData[yearIdx].year}년 실적 전체를 삭제하시겠습니까?`)) return;
+    await saveYears(yearsData.filter((_, i) => i !== yearIdx));
+  };
+
+  const isRecordModal = modal?.mode === "edit_record" || modal?.mode === "add_record";
+  const isYearModal = modal?.mode === "edit_year" || modal?.mode === "add_year";
 
   return (
     <div className="space-y-14">
@@ -222,34 +333,98 @@ function Achievements() {
       </div>
 
       <div className="space-y-16">
-        {years.map((yr) => (
-          <div key={yr.year} className="relative">
+        {yearsData.map((yr, yearIdx) => (
+          <div key={yearIdx} className="relative">
             <div className="flex items-center gap-4 mb-8">
               <div className={`${yr.color} text-white text-2xl font-bold px-6 py-3 rounded-xl shadow-md`}>{yr.year}</div>
-              <div>
+              <div className="flex-1">
                 <p className="text-lg font-semibold text-foreground">{yr.label}</p>
                 <p className="text-sm text-muted-foreground">{yr.records.length}건 납품 시공</p>
               </div>
+              {isAdmin && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openEditYear(yearIdx)}
+                    className="p-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-700 transition-colors"
+                    title="연도 수정"
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteYear(yearIdx)}
+                    className="p-1.5 rounded-lg bg-red-100 hover:bg-red-200 text-red-600 transition-colors"
+                    title="연도 삭제"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
             </div>
+
             <div className="grid md:grid-cols-2 gap-5 ml-0 md:ml-4">
-              {yr.records.map((rec, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden flex flex-col md:flex-row group">
+              {yr.records.map((rec, recIdx) => (
+                <div key={recIdx} className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden flex flex-col md:flex-row group relative">
+                  {isAdmin && (
+                    <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <button
+                        onClick={() => openEditRecord(yearIdx, recIdx)}
+                        className="w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-amber-50 transition-colors"
+                        title="수정"
+                      >
+                        <Pencil className="w-3.5 h-3.5 text-amber-600" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteRecord(yearIdx, recIdx)}
+                        className="w-7 h-7 bg-white rounded-full shadow-md flex items-center justify-center hover:bg-red-50 transition-colors"
+                        title="삭제"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                      </button>
+                    </div>
+                  )}
                   <div className="md:w-44 w-full h-44 md:h-auto shrink-0 overflow-hidden">
-                    <img src={rec.img} alt={rec.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img
+                      src={rec.img}
+                      alt={rec.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      onError={(e) => { (e.target as HTMLImageElement).src = "https://cdn.imweb.me/thumbnail/20220103/5c1275af617c1.jpg"; }}
+                    />
                   </div>
                   <div className="p-5 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${typeColors[rec.type] || "bg-stone-100 text-stone-600"}`}>{rec.type}</span>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ACHIEVEMENT_TYPE_COLORS[rec.type] || "bg-stone-100 text-stone-600"}`}>{rec.type}</span>
                     </div>
                     <h4 className="font-bold text-foreground text-sm mb-2 leading-snug">{rec.title}</h4>
                     <p className="text-muted-foreground text-xs leading-relaxed">{rec.desc}</p>
                   </div>
                 </div>
               ))}
+
+              {isAdmin && (
+                <button
+                  onClick={() => openAddRecord(yearIdx)}
+                  className="min-h-[120px] rounded-2xl border-2 border-dashed border-stone-300 hover:border-primary transition-colors flex flex-col items-center justify-center gap-2 text-stone-400 hover:text-primary p-5"
+                >
+                  <Plus className="w-6 h-6" />
+                  <span className="text-sm font-medium">{yr.year}년 실적 추가</span>
+                </button>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      {isAdmin && (
+        <div className="flex justify-center">
+          <button
+            onClick={openAddYear}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl border-2 border-dashed border-stone-300 hover:border-primary text-stone-400 hover:text-primary transition-colors font-medium"
+          >
+            <Plus className="w-5 h-5" />
+            새 연도 추가
+          </button>
+        </div>
+      )}
 
       <div className="bg-stone-800 text-white rounded-2xl p-8 md:p-12 text-center">
         <h3 className="text-2xl font-bold mb-3">더 자세한 납품 사례가 궁금하신가요?</h3>
@@ -258,6 +433,127 @@ function Achievements() {
           <button className="bg-white text-stone-800 px-8 py-3 rounded-lg font-medium hover:bg-stone-100 transition-colors">시공사례 보러가기</button>
         </Link>
       </div>
+
+      {/* 실적 추가/수정 모달 */}
+      {isRecordModal && modal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-5 border-b">
+              <h2 className="text-base font-bold">{modal.mode === "add_record" ? "실적 추가" : "실적 수정"}</h2>
+              <button onClick={() => setModal(null)} className="p-1 rounded-full hover:bg-stone-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">제목 *</label>
+                <input
+                  type="text"
+                  value={formRecord.title}
+                  onChange={(e) => setFormRecord((f) => ({ ...f, title: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  placeholder="예: 강원도 속초 오션뷰 호텔"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">구분</label>
+                <select
+                  value={formRecord.type}
+                  onChange={(e) => setFormRecord((f) => ({ ...f, type: e.target.value }))}
+                  className="w-full border rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/40"
+                >
+                  {ACHIEVEMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">설명</label>
+                <textarea
+                  value={formRecord.desc}
+                  onChange={(e) => setFormRecord((f) => ({ ...f, desc: e.target.value }))}
+                  rows={3}
+                  className="w-full border rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  placeholder="납품 내용을 간략히 입력하세요"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">이미지 URL</label>
+                <input
+                  type="text"
+                  value={formRecord.img}
+                  onChange={(e) => setFormRecord((f) => ({ ...f, img: e.target.value }))}
+                  placeholder="https://..."
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+                {formRecord.img && (
+                  <img src={formRecord.img} alt="미리보기" className="mt-2 w-full h-28 object-cover rounded-lg border" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                )}
+              </div>
+            </div>
+            <div className="p-5 border-t flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setModal(null)} disabled={saving}>취소</Button>
+              <Button size="sm" onClick={handleSaveRecord} disabled={saving || !formRecord.title.trim()}>
+                {saving ? "저장 중..." : <><Check className="w-4 h-4 mr-1" />{modal.mode === "add_record" ? "추가" : "저장"}</>}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 연도 추가/수정 모달 */}
+      {isYearModal && modal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+            <div className="flex items-center justify-between p-5 border-b">
+              <h2 className="text-base font-bold">{modal.mode === "add_year" ? "연도 추가" : "연도 수정"}</h2>
+              <button onClick={() => setModal(null)} className="p-1 rounded-full hover:bg-stone-100">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">연도 *</label>
+                <input
+                  type="text"
+                  value={formYear.year}
+                  onChange={(e) => setFormYear((f) => ({ ...f, year: e.target.value }))}
+                  placeholder="예: 2025"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">레이블</label>
+                <input
+                  type="text"
+                  value={formYear.label}
+                  onChange={(e) => setFormYear((f) => ({ ...f, label: e.target.value }))}
+                  placeholder="예: 창업 원년"
+                  className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-stone-600 block mb-1">색상</label>
+                <div className="flex gap-2">
+                  {YEAR_COLORS.map((c) => (
+                    <button
+                      key={c.value}
+                      onClick={() => setFormYear((f) => ({ ...f, color: c.value }))}
+                      className={cn(`flex-1 py-2 rounded-lg text-white text-xs font-medium ${c.value}`, formYear.color === c.value && "ring-2 ring-offset-1 ring-stone-400")}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="p-5 border-t flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setModal(null)} disabled={saving}>취소</Button>
+              <Button size="sm" onClick={handleSaveYear} disabled={saving || !formYear.year.trim()}>
+                {saving ? "저장 중..." : <><Check className="w-4 h-4 mr-1" />{modal.mode === "add_year" ? "추가" : "저장"}</>}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
