@@ -28,20 +28,8 @@ app.use(
   }),
 );
 
-const allowedOrigins = [
-  "https://hyu-hinokki.com",
-  "https://www.hyu-hinokki.com",
-  "https://hyupyeonbaeg-aquadeco.vercel.app",
-];
-
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, true);
-    }
-  },
+  origin: true,
   credentials: true,
 }));
 
