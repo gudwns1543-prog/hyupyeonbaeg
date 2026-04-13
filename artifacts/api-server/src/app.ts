@@ -29,8 +29,14 @@ app.use(
 );
 
 app.use(cors({
-  origin: true,
+  origin: [
+    'https://hyu-hinokki.com',
+    'https://www.hyu-hinokki.com',
+    'https://hyupyeonbaeg-aquadeco.vercel.app'
+  ],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
 app.use(express.json());
