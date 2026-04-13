@@ -1,15 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-
-const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+import { customFetch } from "@workspace/api-client-react";
 
 export function useAdminMode() {
   const { data } = useQuery({
     queryKey: ["admin-me"],
     queryFn: async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/auth/me`, { credentials: "include" });
-        if (!res.ok) return { isAdmin: false };
-        return await res.json();
+        const res = await customFetch<{ isAdmin: boolean }>("/api/auth/me", {
+          credentials: "include",
+        });
+        return res;
       } catch {
         return { isAdmin: false };
       }
