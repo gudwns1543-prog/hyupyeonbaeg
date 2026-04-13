@@ -3,7 +3,7 @@ import App from "./App";
 import "./index.css";
 import { setBaseUrl } from "@workspace/api-client-react";
 
-const apiUrl = "https://hyupyeonbaeg-api-server.vercel.app";
+const apiUrl = "";
 setBaseUrl(apiUrl);
 
 createRoot(document.getElementById("root")!).render(<App />);
