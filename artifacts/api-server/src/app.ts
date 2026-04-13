@@ -28,7 +28,23 @@ app.use(
   }),
 );
 
-app.use(cors({ origin: true, credentials: true }));
+const allowedOrigins = [
+  "https://hyu-hinokki.com",
+  "https://www.hyu-hinokki.com",
+  "https://hyupyeonbaeg-aquadeco.vercel.app",
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  credentials: true,
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -41,9 +57,10 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,
+      secure: true,
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000,
+      sameSite: "none",
     },
   }),
 );
