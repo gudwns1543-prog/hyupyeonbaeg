@@ -9,6 +9,16 @@
   ],
   "routes": [
     {
+      "src": "/api/(.*)",
+      "headers": {
+        "Access-Control-Allow-Origin": "https://hyu-hinokki.com",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Credentials": "true"
+      },
+      "dest": "dist/index.mjs"
+    },
+    {
       "src": "/(.*)",
       "dest": "dist/index.mjs"
     }
