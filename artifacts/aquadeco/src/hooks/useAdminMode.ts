@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-const API_BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
 
 export function useAdminMode() {
   const { data } = useQuery({
