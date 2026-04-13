@@ -3,7 +3,6 @@ import { AdminLoginBody } from "@workspace/api-zod";
 import { createHmac, timingSafeEqual } from "crypto";
 
 const router: IRouter = Router();
-
 const ADMIN_PASSWORD = process.env["ADMIN_PASSWORD"] ?? "aquadeco2024!";
 const JWT_SECRET = process.env["SESSION_SECRET"] ?? "aquadeco-admin-secret-2024";
 
@@ -43,4 +42,25 @@ router.post("/login", (req, res) => {
   const token = createToken();
   res.cookie("admin_token", token, {
     httpOnly: true,
-    secure: process.
+    secure: true,
+    sameSite: "none",
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+  res.json({ success: true });
+});
+
+router.get("/me", (req, res) => {
+  const token = req.cookies?.admin_token;
+  if (!token || !verifyToken(token)) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  res.json({ isAdmin: true });
+});
+
+router.post("/logout", (req, res) => {
+  res.clearCookie("admin_token");
+  res.json({ success: true });
+});
+
+export default router;
